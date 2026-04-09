@@ -1,0 +1,226 @@
+---
+export const prerender = false;
+import Layout from '@/layouts/Layout.astro';
+import { list } from '@/lib/api';
+
+// Get filter from URL
+const url = new URL(Astro.request.url);
+const genreFilter = url.searchParams.get('genre');
+
+// Fetch genres for filter buttons
+const customFields = await list('custom-fields');
+const genreField = customFields.find((f: any) => f.name === 'Genre');
+const genres: string[] = genreField?.choices || [];
+
+// Fetch clips, optionally filtered by genre
+let clips: any[];
+if (genreFilter) {
+	// First get pieces with this genre, then get their clips
+	const pieces = await list(`pieces?custom_Genre=${encodeURIComponent(genreFilter)}`);
+	const pieceIds = pieces.map((p: any) => p.id);
+
+	if (pieceIds.length > 0) {
+		const allClips = await list('clips');
+		clips = allClips.filter((clip: any) =>
+			clip.piece && pieceIds.includes(clip.piece.id)
+		);
+	} else {
+		clips = [];
+	}
+} else {
+	clips = await list('clips');
+}
+
+// Sort alphabetically
+clips = clips.sort((a: any, b: any) => a.title.localeCompare(b.title));
+---
+
+<Layout title="Clips">
+	<div class="page-header">
+		<h1>Dance Clips</h1>
+		<p class="page-subtitle">Explore our collection of dance performances and archival footage</p>
+	</div>
+
+	{genres.length > 0 && (
+		<div class="filters">
+			<span class="filter-label">Filter by genre:</span>
+			<a
+				href="/clips"
+				class:list={["filter-btn", { active: !genreFilter }]}
+			>
+				All
+			</a>
+			{genres.map((genre) => (
+				<a
+					href={`/clips?genre=${encodeURIComponent(genre)}`}
+					class:list={["filter-btn", { active: genreFilter === genre }]}
+				>
+					{genre}
+				</a>
+			))}
+		</div>
+	)}
+
+	{clips.length === 0 ? (
+		<div class="empty-state">
+			<p>No clips found{genreFilter ? ` in genre "${genreFilter}"` : ''}. Check back soon for new content!</p>
+		</div>
+	) : (
+		<div class="clips-grid">
+			{clips.map((clip) => (
+				<article class="clip-card">
+					<a href={`/clips/${clip.id}`} class="clip-link">
+						<div class="clip-content">
+							<h3 class="clip-title">{clip.title}</h3>
+							{clip.piece?.custom_fields?.Genre && (
+								<span class="genre-tag">{clip.piece.custom_fields.Genre.value}</span>
+							)}
+							{clip.description && <p class="clip-description">{clip.description}</p>}
+							<div class="clip-meta">
+								<span class="clip-duration">{clip.duration_formatted}s</span>
+								{clip.performance && <span class="clip-performance">{clip.performance.title}</span>}
+							</div>
+						</div>
+					</a>
+				</article>
+			))}
+		</div>
+	)}
+</Layout>
+
+<style>
+	.page-header {
+		text-align: center;
+		margin-bottom: var(--spacing-lg);
+		padding: var(--spacing-lg) 0;
+	}
+
+	.page-header h1 {
+		margin-bottom: var(--spacing-sm);
+		color: var(--color-dark);
+	}
+
+	.page-subtitle {
+		color: var(--color-text-light);
+		font-size: 1.1rem;
+		font-style: italic;
+	}
+
+	.filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--spacing-sm);
+		align-items: center;
+		justify-content: center;
+		margin-bottom: var(--spacing-xl);
+		padding: var(--spacing-md);
+		background: var(--color-white);
+		border-radius: var(--border-radius);
+		box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+	}
+
+	.filter-label {
+		font-size: 0.875rem;
+		color: var(--color-text-light);
+		margin-right: var(--spacing-sm);
+	}
+
+	.filter-btn {
+		display: inline-block;
+		padding: 0.375rem 0.75rem;
+		background: var(--color-light-gray);
+		color: var(--color-text);
+		text-decoration: none;
+		border-radius: 1rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		transition: var(--transition);
+	}
+
+	.filter-btn:hover {
+		background: var(--color-secondary);
+		color: var(--color-white);
+	}
+
+	.filter-btn.active {
+		background: var(--color-secondary);
+		color: var(--color-white);
+	}
+
+	.clips-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+		gap: var(--spacing-lg);
+		margin-bottom: var(--spacing-lg);
+	}
+
+	.clip-card {
+		background: var(--color-bg-cool);
+		border-radius: var(--border-radius);
+		overflow: hidden;
+		transition: var(--transition);
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+		border-left: 3px solid var(--color-accent-blue);
+	}
+
+	.clip-card:hover {
+		transform: translateY(-4px);
+		box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+	}
+
+	.clip-link {
+		display: block;
+		color: inherit;
+	}
+
+	.clip-content {
+		padding: var(--spacing-lg);
+	}
+
+	.clip-title {
+		font-size: 1.25rem;
+		margin-bottom: var(--spacing-sm);
+		color: var(--color-dark);
+	}
+
+	.genre-tag {
+		display: inline-block;
+		padding: 0.125rem 0.5rem;
+		background: var(--color-light-gray);
+		color: var(--color-secondary);
+		border-radius: 0.75rem;
+		font-size: 0.75rem;
+		font-weight: 500;
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.clip-description {
+		color: var(--color-text-light);
+		margin-bottom: var(--spacing-md);
+		font-size: 0.95rem;
+		line-height: 1.5;
+	}
+
+	.clip-meta {
+		display: flex;
+		gap: var(--spacing-md);
+		font-size: 0.85rem;
+		color: var(--color-text-light);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.empty-state {
+		text-align: center;
+		padding: var(--spacing-xl);
+		color: var(--color-text-light);
+		font-style: italic;
+	}
+
+	/* Responsive design */
+	@media (max-width: 768px) {
+		.clips-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

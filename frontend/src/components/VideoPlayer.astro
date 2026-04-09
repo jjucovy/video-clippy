@@ -1,0 +1,102 @@
+---
+interface Props {
+  videoUrl: string;
+  thumbnailUrl?: string;
+  title?: string;
+  startTime?: number;
+  endTime?: number;
+  isExtracted?: boolean;
+}
+
+const { videoUrl, thumbnailUrl, title, startTime, endTime, isExtracted } = Astro.props;
+const isMP4 = isExtracted || (videoUrl && videoUrl.endsWith('.mp4'));
+const playerId = `video-player-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+{!isMP4 && <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet" />}
+
+<div class="video-container">
+  {isMP4 ? (
+    <video
+      id={playerId}
+      controls
+      preload="auto"
+      width="800"
+      height="450"
+      poster={thumbnailUrl}
+    >
+      <source src={videoUrl} type="video/mp4" />
+    </video>
+  ) : (
+    <video
+      id={playerId}
+      class="video-js vjs-default-skin"
+      controls
+      preload="auto"
+      width="800"
+      height="450"
+      poster={thumbnailUrl}
+      data-setup="{}"
+      data-start-time={startTime}
+      data-end-time={endTime}
+    >
+      <source src={videoUrl} type="application/x-mpegURL" />
+      <p class="vjs-no-js">
+        To view this video please enable JavaScript, and consider upgrading to a
+        <a href="https://videojs.com/html5-video-support/" target="_blank">web browser that
+        <span class="vjs-no-js-link">supports HTML5 video</span></a>.
+      </p>
+    </video>
+  )}
+  {title && <p class="video-title">{title}</p>}
+</div>
+
+<style>
+  .video-js {
+    display: block;
+    margin-inline: auto;
+    width: 100%;
+    max-width: 800px;
+    aspect-ratio: 16/9;
+  }
+
+  .video-container {
+    max-width: 100%;
+    margin: var(--spacing-lg) 0;
+    background: var(--color-bg-warm);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid var(--color-accent-teal);
+  }
+
+  video {
+    width: 100%;
+    height: auto;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
+    display: block;
+    margin: 0 auto;
+  }
+
+  .video-title {
+    margin-top: var(--spacing-md);
+    font-size: 0.95rem;
+    color: var(--color-text-light);
+    text-align: center;
+    font-style: italic;
+    font-family: var(--font-heading);
+  }
+</style>
+
+<script>
+  // Only initialize Video.js for HLS players (non-MP4)
+  const videoElements = document.querySelectorAll<HTMLVideoElement>('video.video-js');
+  if (videoElements.length > 0) {
+    import('@/utils/videojs-player').then(({ initializeAllVideoPlayers }) => {
+      initializeAllVideoPlayers().catch(error => {
+        console.error('Failed to initialize video players:', error);
+      });
+    });
+  }
+</script>

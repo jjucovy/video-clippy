@@ -1,0 +1,137 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block object-tools-items %}
+    <li>
+        <a href="{% url 'admin:video_upload' %}" class="addlink">
+            Upload Video
+        </a>
+    </li>
+    <li>
+        <a href="{% url 'admin:video_ingest' %}" class="addlink">
+            Ingest from Cloudflare
+        </a>
+    </li>
+    {{ block.super }}
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .video-refresh-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #417690;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .video-refresh-toast button {
+        background: white;
+        color: #417690;
+        border: none;
+        padding: 5px 15px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .video-refresh-toast button:hover {
+        background: #f0f0f0;
+    }
+</style>
+<script>
+(function() {
+    // Auto-refresh processing videos every 10 seconds
+    let pollingInterval = null;
+    let initialProcessingIds = [];
+    let toastShown = false;
+
+    function showReloadToast() {
+        if (toastShown) return;
+        toastShown = true;
+
+        const toast = document.createElement('div');
+        toast.className = 'video-refresh-toast';
+        toast.innerHTML = `
+            <span>Videos finished processing!</span>
+            <button onclick="window.location.reload()">Reload to see updates</button>
+        `;
+        document.body.appendChild(toast);
+    }
+
+    function getProcessingVideoIds() {
+        const processingVideos = [];
+        document.querySelectorAll('#result_list tbody tr').forEach(row => {
+            const statusCell = row.querySelector('td.field-status');
+            if (statusCell && statusCell.textContent.trim().toLowerCase() === 'processing') {
+                const checkbox = row.querySelector('input[name="_selected_action"]');
+                if (checkbox) {
+                    processingVideos.push(checkbox.value);
+                }
+            }
+        });
+        return processingVideos;
+    }
+
+    function refreshProcessingVideos() {
+        const videoIds = getProcessingVideoIds();
+
+        if (videoIds.length === 0) {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+
+                // If we had processing videos before, show toast
+                if (initialProcessingIds.length > 0) {
+                    showReloadToast();
+                }
+            }
+            return;
+        }
+
+        console.log(`Auto-refreshing ${videoIds.length} processing video(s)...`);
+
+        // Select the processing videos
+        videoIds.forEach(id => {
+            const checkbox = document.querySelector(`input[name="_selected_action"][value="${id}"]`);
+            if (checkbox) checkbox.checked = true;
+        });
+
+        // Trigger the refetch_from_cloudflare action
+        const actionSelect = document.querySelector('select[name="action"]');
+        if (actionSelect) {
+            actionSelect.value = 'refetch_from_cloudflare';
+
+            // Submit the form silently
+            const form = actionSelect.closest('form');
+            if (form) {
+                const formData = new FormData(form);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .catch(error => {
+                    console.error('Error refreshing videos:', error);
+                });
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initialProcessingIds = getProcessingVideoIds();
+        if (initialProcessingIds.length > 0) {
+            console.log(`Found ${initialProcessingIds.length} processing video(s), starting auto-refresh (every 10s)...`);
+            refreshProcessingVideos();
+            pollingInterval = setInterval(refreshProcessingVideos, 10000);
+        }
+    });
+})();
+</script>
+{% endblock %}

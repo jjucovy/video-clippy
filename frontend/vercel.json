@@ -1,0 +1,14 @@
+{
+  "redirects": [
+    {
+      "source": "/pieces/:path*",
+      "destination": "/dance-works/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/pieces",
+      "destination": "/dance-works",
+      "permanent": true
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+---
+/**
+ * Renders custom_fields from the API.
+ * Choice-type fields render as badge tags (linked if an index page exists).
+ * Text-type fields render as plain labeled text.
+ *
+ * Props:
+ *   customFields - the custom_fields object from an API response
+ */
+interface Props {
+	customFields: Record<string, { value: string; field_type: string; help_text?: string }> | undefined;
+}
+
+const { customFields } = Astro.props;
+
+// Genre is the only choice field with a dedicated index page currently.
+// When generic taxonomy pages exist (DVNY-44), this can be expanded.
+const linkableFields: Record<string, (value: string) => string> = {
+	Genre: (value) => `/genres/${encodeURIComponent(value)}`,
+};
+
+const entries = customFields
+	? Object.entries(customFields).filter(([_, field]) => field.value)
+	: [];
+---
+
+{entries.length > 0 && (
+	<div class="custom-fields">
+		{entries.map(([name, field]) => {
+			const linkFn = linkableFields[name];
+			const isText = field.field_type === 'text';
+
+			return isText ? (
+				<p class="custom-field-text">
+					<span class="field-name">{name}:</span> {field.value}
+				</p>
+			) : linkFn ? (
+				<a href={linkFn(field.value)} class="custom-field-badge linked">
+					<span class="field-name">{name}:</span> {field.value}
+				</a>
+			) : (
+				<span class="custom-field-badge">
+					<span class="field-name">{name}:</span> {field.value}
+				</span>
+			);
+		})}
+	</div>
+)}
+
+<style>
+	.custom-fields {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		justify-content: center;
+		align-items: baseline;
+		margin-bottom: var(--spacing-md);
+	}
+
+	.custom-field-badge {
+		display: inline-block;
+		padding: 0.25rem 0.75rem;
+		background: var(--color-light-gray);
+		color: var(--color-text);
+		border-radius: 1rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+	}
+
+	.custom-field-badge.linked {
+		color: var(--color-secondary);
+		text-decoration: none;
+		transition: var(--transition);
+	}
+
+	.custom-field-badge.linked:hover {
+		background: var(--color-secondary);
+		color: var(--color-white);
+	}
+
+	.custom-field-text {
+		font-size: 0.95rem;
+		color: var(--color-text);
+		margin: 0;
+		line-height: 1.5;
+	}
+
+	.field-name {
+		font-weight: 600;
+	}
+</style>

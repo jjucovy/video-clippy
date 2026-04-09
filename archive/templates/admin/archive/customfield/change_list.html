@@ -1,0 +1,20 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+<div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h2 style="margin-top: 0; color: #417690;">How Custom Fields Work</h2>
+    <p>Custom fields let you add your own categories and labels to items in the archive. For example, you can tag dance works with a <strong>Genre</strong> like Ballet, Modern, or Duncan.</p>
+    <details style="margin-top: 10px;">
+        <summary style="cursor: pointer; color: #417690; font-weight: bold;">Step-by-step: Creating a new custom field</summary>
+        <ol style="margin-top: 10px; line-height: 1.8;">
+            <li>Click <strong>"Add Custom Field"</strong> above.</li>
+            <li>Enter a <strong>name</strong> (e.g., "Genre"). The field type will default to "choice" (dropdown).</li>
+            <li>Check the boxes for which <strong>types of items</strong> this field applies to (e.g., Dance Work).</li>
+            <li>In the <strong>Choices</strong> box, enter your options — one per line (e.g., Ballet, Modern, Duncan).</li>
+            <li>Click <strong>Save</strong>.</li>
+            <li>Now go edit a Dance Work — you'll see a Genre dropdown at the bottom of the page!</li>
+        </ol>
+    </details>
+</div>
+{{ block.super }}
+{% endblock %}

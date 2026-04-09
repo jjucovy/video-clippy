@@ -1,0 +1,151 @@
+/* Import Dance Visions fonts */
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Josefin+Sans:wght@300;400;500;600;700&display=swap');
+
+/* CSS Variables for Dance Visions theme */
+:root {
+    --color-primary: #F1E7DE;
+    --color-secondary: #83CDC0;
+    --color-dark: #515151;
+    --color-light-gray: #ededed;
+    --color-white: #ffffff;
+    --color-text: #333333;
+    --color-text-light: #666666;
+    
+    /* New accent colors */
+    --color-accent-purple: #5762b4;
+    --color-accent-teal: #83cdc0;
+    --color-accent-lavender: #9583cc;
+    --color-accent-blue: #83abcc;
+    
+    /* Subtle background variations */
+    --color-bg-warm: #FDFCFB;
+    --color-bg-cool: #FBFCFD;
+    --color-bg-soft: #F9F9F8;
+    
+    --font-heading: 'Merriweather', serif;
+    --font-body: 'Josefin Sans', sans-serif;
+    
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+    
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+}
+
+/* Reset and base styles */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-body);
+    background-color: var(--color-primary);
+    color: var(--color-text);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-style: italic;
+    color: var(--color-dark);
+    margin-top: 0;
+    margin-bottom: var(--spacing-md);
+    line-height: 1.3;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+h2 {
+    font-size: 2rem;
+    font-weight: 400;
+}
+
+h3 {
+    font-size: 1.5rem;
+    font-weight: 400;
+}
+
+p {
+    margin-bottom: var(--spacing-md);
+    color: var(--color-text);
+}
+
+/* Links */
+a {
+    color: var(--color-dark);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+a:hover {
+    color: var(--color-secondary);
+    text-decoration: none;
+}
+
+/* Lists */
+ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+li {
+    margin-bottom: var(--spacing-xs);
+}
+
+/* Container */
+.container {
+    width: 100%;
+    padding: 0;
+}
+
+/* Buttons */
+.btn {
+    display: inline-grid;
+    place-content: center;
+    place-items: center;
+    padding: calc(var(--spacing-xs) + 2px) var(--spacing-md) calc(var(--spacing-xs) + 1px);
+    background: var(--color-secondary);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--border-radius);
+    font-family: var(--font-body);
+    font-weight: 500;
+    text-decoration: none;
+    transition: var(--transition);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.btn:hover {
+    background: var(--color-dark);
+    color: var(--color-white);
+    transform: translateY(-1px);
+}
+
+/* Utility classes */
+.text-center {
+    text-align: center;
+}
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: var(--spacing-xs); }
+.mb-2 { margin-bottom: var(--spacing-sm); }
+.mb-3 { margin-bottom: var(--spacing-md); }
+.mb-4 { margin-bottom: var(--spacing-lg); }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: var(--spacing-xs); }
+.mt-2 { margin-top: var(--spacing-sm); }
+.mt-3 { margin-top: var(--spacing-md); }
+.mt-4 { margin-top: var(--spacing-lg); }

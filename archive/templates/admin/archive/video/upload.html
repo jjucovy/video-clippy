@@ -1,0 +1,561 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+<!-- Uppy CSS -->
+<link href="https://releases.transloadit.com/uppy/v3.21.0/uppy.min.css" rel="stylesheet">
+<!-- Uppy JS -->
+<script src="https://releases.transloadit.com/uppy/v3.21.0/uppy.min.js"></script>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label='archive' %}">Archive</a>
+    &rsaquo; <a href="{% url 'admin:archive_video_changelist' %}">Videos</a>
+    &rsaquo; Upload Video
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<!-- Pending uploads section -->
+<div id="pending-uploads" style="margin-bottom: 30px; display: none;">
+    <h2 style="color: #ff8c00;">Resume Uploads</h2>
+    <p>You have incomplete uploads. Click to resume:</p>
+    <div id="pending-uploads-list" style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px;">
+        <!-- Pending uploads will be populated here -->
+    </div>
+</div>
+
+<!-- Uppy file picker -->
+<div id="uppy-container" style="margin-bottom: 20px;"></div>
+
+<form id="metadata-form" class="aligned">
+    {% csrf_token %}
+
+    <fieldset class="module aligned">
+        <h2>Basic Information</h2>
+        <div class="form-row">
+            <div>
+                <label for="id_title" class="required">Title:</label>
+                <input type="text" name="title" id="id_title" maxlength="255" required>
+                <p class="help">e.g., "VHS Tape #47 - Mixed 1980s Content"</p>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div>
+                <label for="id_description">Description:</label>
+                <textarea name="description" id="id_description" rows="4" cols="40"></textarea>
+                <p class="help">What we know about this digitized content</p>
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset class="module aligned">
+        <h2>Source Information</h2>
+        <div class="form-row">
+            <div>
+                <label for="id_provenance">Provenance:</label>
+                <textarea name="provenance" id="id_provenance" rows="3" cols="40"></textarea>
+                <p class="help">Source information, acquisition details, etc.</p>
+            </div>
+        </div>
+    </fieldset>
+
+    <div class="submit-row">
+        <a href="{% url 'admin:archive_video_changelist' %}" class="button">Cancel</a>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    const USE_R2 = {{ use_r2|yesno:"true,false" }};
+    const { Uppy, Dashboard, Tus, AwsS3Multipart } = window.Uppy;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const UPDATE_PROGRESS_URL = '{% url "admin:update_progress" "VIDEO_ID" %}';
+    const CHANGE_URL = '{% url "admin:archive_video_change" "VIDEO_ID" %}';
+
+    // Load pending uploads
+    async function loadPendingUploads() {
+        try {
+            const response = await fetch('{% url "admin:pending_uploads" %}');
+            const data = await response.json();
+
+            if (data.success && data.uploads.length > 0) {
+                document.getElementById('pending-uploads').style.display = 'block';
+                const listEl = document.getElementById('pending-uploads-list');
+                listEl.innerHTML = '';
+
+                data.uploads.forEach(upload => {
+                    const progress = upload.upload_total > 0
+                        ? Math.round((upload.upload_offset / upload.upload_total) * 100)
+                        : 0;
+
+                    // Determine resume type
+                    const isR2Upload = !!upload.r2_upload_id;
+                    const canResume = isR2Upload || !!upload.tus_upload_url;
+
+                    const uploadEl = document.createElement('div');
+                    uploadEl.style.marginBottom = '10px';
+                    uploadEl.style.padding = '10px';
+                    uploadEl.style.background = 'white';
+                    uploadEl.style.border = '1px solid #ddd';
+                    uploadEl.style.borderRadius = '3px';
+                    uploadEl.innerHTML = `
+                        <strong>${upload.title || upload.original_filename}</strong>
+                        ${isR2Upload ? '<span style="color:#0070f3;font-size:11px;margin-left:8px;">(R2)</span>' : ''}
+                        <br>
+                        <small>Started: ${new Date(upload.created_at).toLocaleString()}</small><br>
+                        <small>Progress: ${progress}% (${(upload.upload_offset / (1024*1024*1024)).toFixed(2)} GB / ${(upload.upload_total / (1024*1024*1024)).toFixed(2)} GB)</small><br>
+                        ${canResume ? `<button class="button" onclick="resumeUpload('${upload.id}', '${upload.tus_upload_url || ''}', '${upload.original_filename}', ${upload.upload_total}, '${upload.r2_upload_id || ''}', '${upload.r2_key || ''}')">Resume Upload</button>` : ''}
+                        <a href="${CHANGE_URL.replace('VIDEO_ID', upload.id)}" class="button">View</a>
+                    `;
+                    listEl.appendChild(uploadEl);
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load pending uploads:', error);
+        }
+    }
+
+    // Resume upload function
+    window.resumeUpload = function(videoId, tusUrl, filename, fileSize, r2UploadId, r2Key) {
+        if (USE_R2 && r2UploadId) {
+            sessionStorage.setItem('resumeVideoId', videoId);
+            sessionStorage.setItem('resumeFilename', filename);
+            sessionStorage.setItem('resumeR2UploadId', r2UploadId);
+            sessionStorage.setItem('resumeR2Key', r2Key);
+        } else if (!USE_R2 && tusUrl) {
+            sessionStorage.setItem('resumeVideoId', videoId);
+            sessionStorage.setItem('resumeTusUrl', tusUrl);
+            sessionStorage.setItem('resumeFilename', filename);
+            sessionStorage.setItem('resumeFileSize', fileSize);
+        } else {
+            alert('Cannot resume: Upload info not available or upload mode mismatch.');
+            return;
+        }
+        alert('Please select the same video file to resume the upload.');
+        document.getElementById('pending-uploads').style.display = 'none';
+    };
+
+    await loadPendingUploads();
+
+    // Initialize Uppy
+    const uppy = new Uppy({
+        debug: false,
+        autoProceed: false,
+        allowMultipleUploads: false,
+        restrictions: {
+            maxNumberOfFiles: 1,
+            allowedFileTypes: ['video/*']
+        }
+    });
+
+    // Add Dashboard UI
+    uppy.use(Dashboard, {
+        target: '#uppy-container',
+        inline: true,
+        width: '100%',
+        height: 400,
+        showProgressDetails: true,
+        proudlyDisplayPoweredByUppy: false,
+        locale: {
+            strings: {
+                dropPasteFiles: 'Drop video files here or %{browseFiles}',
+                browseFiles: 'browse files'
+            }
+        }
+    });
+
+    if (USE_R2) {
+        // ========== R2 Multipart Upload Path ==========
+
+        uppy.use(AwsS3Multipart, {
+            limit: 6, // 6 concurrent part uploads
+
+            async createMultipartUpload(file) {
+                const response = await fetch('{% url "admin:r2_create_multipart" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        video_id: file.meta.videoId,
+                        filename: file.name,
+                        content_type: file.type || 'video/mp4',
+                    }),
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Failed to create multipart upload');
+                }
+                return await response.json();
+            },
+
+            async signPart(file, { uploadId, key, partNumber }) {
+                const params = new URLSearchParams({
+                    video_id: file.meta.videoId,
+                    part_number: String(partNumber),
+                });
+                const response = await fetch(`{% url "admin:r2_sign_part" %}?${params}`, {
+                    headers: { 'X-CSRFToken': csrfToken },
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Failed to sign part');
+                }
+                return await response.json();
+            },
+
+            async completeMultipartUpload(file, { uploadId, key, parts }) {
+                const response = await fetch('{% url "admin:r2_complete_multipart" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        video_id: file.meta.videoId,
+                        parts: parts,
+                    }),
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Failed to complete multipart upload');
+                }
+                return {};
+            },
+
+            async abortMultipartUpload(file, { uploadId, key }) {
+                await fetch('{% url "admin:r2_abort_multipart" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ video_id: file.meta.videoId }),
+                });
+            },
+
+            async listParts(file, { uploadId, key }) {
+                const params = new URLSearchParams({ video_id: file.meta.videoId });
+                const response = await fetch(`{% url "admin:r2_list_parts" %}?${params}`, {
+                    headers: { 'X-CSRFToken': csrfToken },
+                });
+                if (!response.ok) return [];
+                return await response.json();
+            },
+        });
+
+        // Create Video record when file is added (R2 mode)
+        uppy.on('file-added', async (file) => {
+            const title = document.getElementById('id_title').value || file.name;
+            const description = document.getElementById('id_description').value || '';
+            const provenance = document.getElementById('id_provenance').value || '';
+
+            try {
+                // Check for R2 resume
+                const resumeVideoId = sessionStorage.getItem('resumeVideoId');
+                const resumeR2UploadId = sessionStorage.getItem('resumeR2UploadId');
+                const resumeR2Key = sessionStorage.getItem('resumeR2Key');
+                const resumeFilename = sessionStorage.getItem('resumeFilename');
+
+                if (resumeVideoId && resumeR2UploadId) {
+                    if (file.name !== resumeFilename) {
+                        alert(`Please select the correct file: ${resumeFilename}`);
+                        uppy.removeFile(file.id);
+                        return;
+                    }
+
+                    sessionStorage.removeItem('resumeVideoId');
+                    sessionStorage.removeItem('resumeR2UploadId');
+                    sessionStorage.removeItem('resumeR2Key');
+                    sessionStorage.removeItem('resumeFilename');
+
+                    uppy.setFileMeta(file.id, {
+                        videoId: resumeVideoId,
+                        // Provide key/uploadId so AwsS3Multipart resumes
+                        key: resumeR2Key,
+                        uploadId: resumeR2UploadId,
+                    });
+                    uppy.info('Resuming upload...', 'info', 3000);
+                } else {
+                    // Create new Video record
+                    const response = await fetch('{% url "admin:start_upload" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: JSON.stringify({
+                            title: title,
+                            description: description,
+                            provenance: provenance,
+                            filename: file.name,
+                            file_size: file.size,
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!data.success) {
+                        throw new Error(data.error || 'Failed to create video record');
+                    }
+
+                    uppy.setFileMeta(file.id, { videoId: data.video_id });
+                }
+            } catch (error) {
+                uppy.info('Failed to prepare upload: ' + error.message, 'error', 5000);
+                uppy.removeFile(file.id);
+            }
+        });
+
+        // Handle successful R2 upload
+        uppy.on('upload-success', async (file, response) => {
+            try {
+                if (!file.meta.videoId) throw new Error('Video ID not found');
+
+                uppy.info('Video uploaded to R2! Processing will begin shortly. Redirecting...', 'success', 3000);
+                setTimeout(() => {
+                    window.location.href = CHANGE_URL.replace('VIDEO_ID', file.meta.videoId);
+                }, 2000);
+            } catch (error) {
+                uppy.info('Upload completed but error: ' + error.message, 'error', 10000);
+            }
+        });
+
+    } else {
+        // ========== Cloudflare Stream TUS Upload Path (existing) ==========
+
+        uppy.use(Tus, {
+            endpoint: '{% url "admin:get_upload_url" %}',
+            chunkSize: 150 * 1024 * 1024,
+            retryDelays: [0, 1000, 3000, 5000],
+            limit: 1,
+            onBeforeRequest: (req) => {
+                const url = req.getURL();
+                if (!url.includes('cloudflare')) {
+                    req.setHeader('X-CSRFToken', csrfToken);
+                }
+                return req;
+            }
+        });
+
+        // Store metadata and create Video record when file is added
+        uppy.on('file-added', async (file) => {
+            const title = document.getElementById('id_title').value || file.name;
+            const description = document.getElementById('id_description').value || '';
+            const provenance = document.getElementById('id_provenance').value || '';
+
+            try {
+                const resumeVideoId = sessionStorage.getItem('resumeVideoId');
+                const resumeTusUrl = sessionStorage.getItem('resumeTusUrl');
+                const resumeFilename = sessionStorage.getItem('resumeFilename');
+
+                if (resumeVideoId && resumeTusUrl) {
+                    if (file.name !== resumeFilename) {
+                        alert(`Please select the correct file: ${resumeFilename}`);
+                        uppy.removeFile(file.id);
+                        return;
+                    }
+
+                    sessionStorage.removeItem('resumeVideoId');
+                    sessionStorage.removeItem('resumeTusUrl');
+                    sessionStorage.removeItem('resumeFilename');
+                    sessionStorage.removeItem('resumeFileSize');
+
+                    file.customData = {
+                        videoId: resumeVideoId,
+                        title: title,
+                        description: description,
+                        provenance: provenance,
+                        isResume: true
+                    };
+                    uppy.info('Resuming upload...', 'info', 3000);
+                } else {
+                    const response = await fetch('{% url "admin:start_upload" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({
+                            title: title,
+                            description: description,
+                            provenance: provenance,
+                            filename: file.name,
+                            file_size: file.size
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!data.success) {
+                        throw new Error(data.error || 'Failed to create video record');
+                    }
+
+                    file.customData = {
+                        videoId: data.video_id,
+                        title: title,
+                        description: description,
+                        provenance: provenance,
+                        isResume: false
+                    };
+                }
+            } catch (error) {
+                uppy.info('Failed to prepare upload: ' + error.message, 'error', 5000);
+                uppy.removeFile(file.id);
+            }
+        });
+
+        uppy.on('upload-start', async (files) => {
+            console.log('Upload starting for files:', files);
+        });
+
+        uppy.on('upload-started', async (file) => {
+            console.log('Upload started for file:', file.name);
+
+            if (file && file.customData && file.customData.videoId) {
+                await fetch(UPDATE_PROGRESS_URL.replace('VIDEO_ID', file.customData.videoId), {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ status: 'uploading' })
+                });
+
+                const tusPlugin = uppy.getPlugin('Tus');
+                if (tusPlugin && tusPlugin.uploaders && tusPlugin.uploaders[file.id]) {
+                    const uploader = tusPlugin.uploaders[file.id];
+                    if (uploader.url) {
+                        const urlParts = uploader.url.split('/');
+                        const streamId = urlParts[urlParts.length - 1];
+                        file.customData.tusUrlSaved = true;
+
+                        await fetch(UPDATE_PROGRESS_URL.replace('VIDEO_ID', file.customData.videoId), {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({
+                                tus_upload_url: uploader.url,
+                                cloudflare_stream_id: streamId
+                            })
+                        });
+                    }
+                }
+            }
+        });
+
+        uppy.on('upload-progress', async (file, progress) => {
+            if (!file.customData || !file.customData.videoId) return;
+
+            if (!file.customData.tusUrlSaved && progress.uploadURL) {
+                file.customData.tusUrlSaved = true;
+                const urlParts = progress.uploadURL.split('/');
+                const streamId = urlParts[urlParts.length - 1];
+
+                await fetch(UPDATE_PROGRESS_URL.replace('VIDEO_ID', file.customData.videoId), {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        tus_upload_url: progress.uploadURL,
+                        upload_offset: progress.bytesUploaded,
+                        cloudflare_stream_id: streamId
+                    })
+                });
+            } else if (file.customData.tusUrlSaved) {
+                const bytesUploaded = progress.bytesUploaded || 0;
+                if (bytesUploaded % (50 * 1024 * 1024) < 10000) {
+                    await fetch(UPDATE_PROGRESS_URL.replace('VIDEO_ID', file.customData.videoId), {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ upload_offset: bytesUploaded })
+                    });
+                }
+            }
+        });
+
+        uppy.on('upload-success', async (file, response) => {
+            try {
+                let streamId = file.customData.streamId;
+
+                if (response.uploadURL) {
+                    const urlParts = response.uploadURL.split('/');
+                    streamId = urlParts[urlParts.length - 1];
+                }
+
+                if (!file.customData || !file.customData.videoId) {
+                    throw new Error('Video ID not found');
+                }
+
+                const updateData = {
+                    status: 'processing',
+                    upload_offset: file.size
+                };
+
+                if (response.uploadURL) {
+                    updateData.tus_upload_url = response.uploadURL;
+                    updateData.cloudflare_stream_id = streamId;
+                }
+
+                const updateResponse = await fetch(UPDATE_PROGRESS_URL.replace('VIDEO_ID', file.customData.videoId), {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(updateData)
+                });
+
+                const data = await updateResponse.json();
+                if (data.success) {
+                    uppy.info('Video uploaded successfully! Redirecting...', 'success', 3000);
+                    setTimeout(() => {
+                        window.location.href = CHANGE_URL.replace('VIDEO_ID', file.customData.videoId);
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Failed to update video record');
+                }
+            } catch (error) {
+                uppy.info('Upload completed but failed to create video record: ' + error.message, 'error', 10000);
+            }
+        });
+    }
+
+    // Handle upload errors (shared)
+    uppy.on('upload-error', (file, error, response) => {
+        uppy.info('Upload failed: ' + error.message, 'error', 10000);
+    });
+});
+</script>
+
+<style>
+.aligned .form-row > div {
+    padding-left: 0;
+}
+.aligned label {
+    float: left;
+    width: 160px;
+    padding-top: 3px;
+    margin-right: 10px;
+}
+.help {
+    font-size: 11px;
+    color: #666;
+    margin-top: 2px;
+}
+</style>
+{% endblock %}

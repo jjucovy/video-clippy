@@ -1,0 +1,86 @@
+---
+export const prerender = false;
+import Layout from '@/layouts/Layout.astro';
+import VideoPlayer from '@/components/VideoPlayer.astro';
+import CustomFields from '@/components/CustomFields.astro';
+import { get } from '@/lib/api';
+
+const { id } = Astro.params;
+const clip = await get('clips', id);
+const video = clip.video;
+
+// Merge piece's custom fields with clip's own, clip takes priority
+const mergedCustomFields = {
+	...(clip.piece?.custom_fields || {}),
+	...(clip.custom_fields || {}),
+};
+---
+
+<Layout title={clip.title}>
+	<h1>{clip.title}</h1>
+	<CustomFields customFields={mergedCustomFields} />
+	{clip.description && <p class="description">{clip.description}</p>}
+
+	<VideoPlayer
+		videoUrl={clip.video_url}
+		thumbnailUrl={clip.thumbnail_url}
+		title={clip.title}
+		isExtracted={clip.is_extracted}
+		startTime={!clip.is_extracted ? parseFloat(clip.start_time_seconds) : undefined}
+		endTime={!clip.is_extracted ? parseFloat(clip.end_time_seconds) : undefined}
+	/>
+
+	<div class="clip-details">
+		<p><strong>Duration:</strong> {(parseFloat(clip.end_time_seconds) - parseFloat(clip.start_time_seconds)).toFixed(1)} seconds</p>
+		{clip.performance && <p><strong>Performance:</strong> <a href={`/performances/${clip.performance.id}`}>{clip.performance.title}</a></p>}
+		{clip.piece && <p><strong>Dance Work:</strong> <a href={`/dance-works/${clip.piece.id}`}>{clip.piece.title}</a></p>}
+	</div>
+</Layout>
+
+<style>
+	.description {
+		margin: var(--spacing-lg) 0;
+		color: var(--color-text-light);
+		font-style: italic;
+		font-size: 1.1rem;
+		line-height: 1.6;
+		text-align: center;
+		max-width: 600px;
+		margin-left: auto;
+		margin-right: auto;
+	}
+
+	.clip-details {
+		margin: var(--spacing-xl) 0;
+		padding: var(--spacing-lg);
+		background: var(--color-white);
+		border-radius: var(--border-radius);
+		box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+	}
+
+	.clip-details p {
+		margin: var(--spacing-md) 0;
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+	}
+
+	.clip-details strong {
+		color: var(--color-dark);
+		font-family: var(--font-heading);
+		font-style: italic;
+		min-width: 80px;
+	}
+
+	.clip-details a {
+		color: var(--color-secondary);
+		text-decoration: none;
+		font-weight: 500;
+		transition: var(--transition);
+	}
+
+	.clip-details a:hover {
+		color: var(--color-dark);
+		text-decoration: none;
+	}
+</style>

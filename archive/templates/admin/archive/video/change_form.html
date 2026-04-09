@@ -1,0 +1,123 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if this video is in processing status
+    const statusField = document.querySelector('.field-status .readonly');
+    if (!statusField) return;
+
+    const status = statusField.textContent.trim().toLowerCase();
+    const videoId = '{{ object_id }}';
+
+    // Detect if this is an R2 video by checking for r2_key field
+    const r2KeyField = document.querySelector('.field-r2_key .readonly');
+    const isR2Video = r2KeyField && r2KeyField.textContent.trim() !== '' && r2KeyField.textContent.trim() !== '-';
+
+    if (status === 'processing' || status === 'pending' || status === 'uploading') {
+        let attempts = 0;
+        const maxAttempts = 120; // 10 minutes (every 5 seconds)
+
+        // Add a status indicator
+        const messagesDiv = document.querySelector('.messagelist') || createMessageArea();
+        const statusMessage = document.createElement('li');
+        statusMessage.className = 'info';
+        statusMessage.innerHTML = '<strong>Video is processing...</strong> Auto-refreshing status every 5 seconds. <span id="refresh-counter">Attempt 1/' + maxAttempts + '</span>';
+        messagesDiv.appendChild(statusMessage);
+
+        const refreshInterval = setInterval(async function() {
+            attempts++;
+
+            try {
+                let currentStatus, processingError;
+
+                if (isR2Video) {
+                    // R2 video: poll local processing status endpoint
+                    const response = await fetch('/admin/archive/video/' + videoId + '/processing-status/', {
+                        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                    });
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    currentStatus = data.status;
+                    processingError = data.processing_error;
+                } else {
+                    // CF Stream video: call refresh_metadata endpoint
+                    const response = await fetch('/api/videos/' + videoId + '/refresh_metadata/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        }
+                    });
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    currentStatus = data.status;
+                }
+
+                // Update counter
+                const counter = document.getElementById('refresh-counter');
+                if (counter) {
+                    counter.textContent = 'Attempt ' + (attempts + 1) + '/' + maxAttempts;
+                }
+
+                if (currentStatus === 'ready') {
+                    clearInterval(refreshInterval);
+                    statusMessage.className = 'success';
+                    statusMessage.innerHTML = '<strong>Video is ready!</strong> Redirecting to clipper in 3 seconds... <a href="/admin/archive/video/' + videoId + '/clipper/">Go now</a>';
+                    setTimeout(function() {
+                        window.location.href = '/admin/archive/video/' + videoId + '/clipper/';
+                    }, 3000);
+                } else if (currentStatus === 'error') {
+                    clearInterval(refreshInterval);
+                    statusMessage.className = 'error';
+                    const errorDetail = processingError ? ': ' + processingError : '';
+                    statusMessage.innerHTML = '<strong>Processing failed' + errorDetail + '</strong> <a href="">Refresh page</a>';
+                }
+
+            } catch (error) {
+                console.error('Error refreshing metadata:', error);
+            }
+
+            if (attempts >= maxAttempts) {
+                clearInterval(refreshInterval);
+                statusMessage.className = 'warning';
+                statusMessage.innerHTML = '<strong>Stopped auto-refresh after ' + maxAttempts + ' attempts.</strong> Video may still be processing. <a href="">Refresh page</a> to check status.';
+            }
+
+        }, 5000);
+    } else if (status === 'ready') {
+        // Video is ready - show clipper link prominently
+        const messagesDiv = document.querySelector('.messagelist') || createMessageArea();
+        const clipperMessage = document.createElement('li');
+        clipperMessage.className = 'success';
+        clipperMessage.innerHTML = '<strong>Video is ready for clipping!</strong> <a href="/admin/archive/video/' + videoId + '/clipper/" class="button">Create Clips Now</a>';
+        messagesDiv.appendChild(clipperMessage);
+    }
+
+    function createMessageArea() {
+        const contentDiv = document.querySelector('#content');
+        const messagesDiv = document.createElement('ul');
+        messagesDiv.className = 'messagelist';
+        contentDiv.insertBefore(messagesDiv, contentDiv.firstChild);
+        return messagesDiv;
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,17 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { list } from '@/lib/api';
+
+const venues = await list('venues');
+---
+
+<Layout title="Venues">
+	<h1>Venues</h1>
+	<ul>
+		{venues.map((venue) => (
+			<li>
+				<a href={`/venues/${venue.id}`}>{venue.name}</a>
+			</li>
+		))}
+	</ul>
+</Layout>

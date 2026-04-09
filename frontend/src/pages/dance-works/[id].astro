@@ -1,0 +1,103 @@
+---
+export const prerender = false;
+import Layout from '@/layouts/Layout.astro';
+import ClipCarousel from '@/components/ClipCarousel.astro';
+import CustomFields from '@/components/CustomFields.astro';
+import { get, list } from '@/lib/api';
+
+const { id } = Astro.params;
+const piece = await get('pieces', id);
+const clips = await list(`clips?piece=${id}`);
+---
+
+<Layout title={piece.title}>
+	<div class="piece-header">
+		<h1 class="piece-title">{piece.title}</h1>
+		<CustomFields customFields={piece.custom_fields} />
+		{piece.choreographers?.length > 0 && (
+			<p class="choreographer">
+				{piece.choreographers.length === 1 ? 'Choreographer' : 'Choreographers'}:
+				<span class="name">{piece.choreographers.map((c: any) => c.name).join(', ')}</span>
+			</p>
+		)}
+		{piece.description && (
+			<p class="piece-description">{piece.description}</p>
+		)}
+	</div>
+
+	<ClipCarousel clips={clips} pieceTitle={piece.title} />
+
+	{clips.length > 0 && (
+		<div class="piece-footer">
+			<p class="evolution-note">
+				<em>Compare performances across time to witness the evolution of this dance work through different interpretations and stagings.</em>
+			</p>
+		</div>
+	)}
+</Layout>
+
+<style>
+	.piece-header {
+		text-align: center;
+		margin-bottom: var(--spacing-xl);
+		padding-bottom: var(--spacing-lg);
+		border-bottom: 1px solid var(--color-light-gray);
+	}
+
+	.piece-title {
+		font-size: 2.5rem;
+		margin-bottom: var(--spacing-md);
+		color: var(--color-dark);
+	}
+
+	.choreographer {
+		font-size: 1.1rem;
+		color: var(--color-text-light);
+		margin-bottom: var(--spacing-md);
+		font-family: var(--font-heading);
+		font-style: italic;
+	}
+
+	.choreographer .name {
+		color: var(--color-secondary);
+		font-weight: 600;
+	}
+
+	.piece-description {
+		max-width: 600px;
+		margin: 0 auto;
+		line-height: 1.6;
+		color: var(--color-text);
+		font-size: 1.05rem;
+	}
+
+	.piece-footer {
+		margin-top: var(--spacing-xl);
+		padding-top: var(--spacing-lg);
+		text-align: center;
+		border-top: 1px solid var(--color-light-gray);
+	}
+
+	.evolution-note {
+		color: var(--color-text-light);
+		font-size: 0.95rem;
+		margin: 0;
+		font-style: italic;
+		line-height: 1.5;
+	}
+
+	/* Responsive design */
+	@media (max-width: 768px) {
+		.piece-title {
+			font-size: 2rem;
+		}
+
+		.piece-header {
+			padding: var(--spacing-md);
+		}
+
+		.piece-footer {
+			padding: var(--spacing-md);
+		}
+	}
+</style>

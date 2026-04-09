@@ -1,0 +1,17 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { list } from '@/lib/api';
+
+const performers = await list('people');
+---
+
+<Layout title="Performers">
+	<h1>Performers</h1>
+	<ul>
+		{performers.map((performer) => (
+			<li>
+				<a href={`/performers/${performer.id}`}>{performer.name}</a>
+			</li>
+		))}
+	</ul>
+</Layout>

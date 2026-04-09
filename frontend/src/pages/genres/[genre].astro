@@ -1,0 +1,141 @@
+---
+export const prerender = false;
+import Layout from '@/layouts/Layout.astro';
+import ClipCarousel from '@/components/ClipCarousel.astro';
+import { list } from '@/lib/api';
+
+const { genre } = Astro.params;
+const decodedGenre = decodeURIComponent(genre || '');
+
+// Fetch pieces with this genre
+const pieces = await list(`pieces?custom_Genre=${encodeURIComponent(decodedGenre)}`);
+
+// Fetch clips for all these pieces in a single API call
+const pieceIds = pieces.map((p: any) => p.id);
+let clips: any[] = [];
+if (pieceIds.length > 0) {
+	clips = await list(`clips?piece__in=${pieceIds.join(',')}`);
+}
+---
+
+<Layout title={`${decodedGenre} - Genre`}>
+	<div class="genre-header">
+		<p class="breadcrumb"><a href="/genres">Genres</a> / {decodedGenre}</p>
+		<h1>{decodedGenre}</h1>
+	</div>
+
+	<section class="pieces-section">
+		<h2>Dance Works</h2>
+		{pieces.length > 0 ? (
+			<ul class="pieces-list">
+				{pieces.map((piece: any) => (
+					<li>
+						<a href={`/dance-works/${piece.id}`} class="piece-link">
+							<span class="piece-title">{piece.title}</span>
+							{piece.choreographers?.length > 0 && (
+								<span class="choreographer">by {piece.choreographers.map((c: any) => c.name).join(' & ')}</span>
+							)}
+						</a>
+					</li>
+				))}
+			</ul>
+		) : (
+			<p class="no-items">No dance works found in this genre.</p>
+		)}
+	</section>
+
+	{clips.length > 0 && (
+		<section class="clips-section">
+			<h2>Clips</h2>
+			<ClipCarousel clips={clips} pieceTitle={decodedGenre} />
+		</section>
+	)}
+</Layout>
+
+<style>
+	.genre-header {
+		text-align: center;
+		margin-bottom: var(--spacing-xl);
+		padding-bottom: var(--spacing-lg);
+		border-bottom: 1px solid var(--color-light-gray);
+	}
+
+	.breadcrumb {
+		font-size: 0.875rem;
+		color: var(--color-text-light);
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.breadcrumb a {
+		color: var(--color-secondary);
+		text-decoration: none;
+	}
+
+	.breadcrumb a:hover {
+		text-decoration: underline;
+	}
+
+	h1 {
+		font-size: 2.5rem;
+		margin: 0;
+		color: var(--color-dark);
+	}
+
+	h2 {
+		font-size: 1.5rem;
+		margin-bottom: var(--spacing-lg);
+		color: var(--color-dark);
+	}
+
+	.pieces-section {
+		margin-bottom: var(--spacing-xl);
+	}
+
+	.pieces-list {
+		list-style: none;
+		padding: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: var(--spacing-md);
+	}
+
+	.piece-link {
+		display: block;
+		padding: var(--spacing-lg);
+		background: var(--color-white);
+		border-radius: var(--border-radius);
+		box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+		text-decoration: none;
+		transition: var(--transition);
+	}
+
+	.piece-link:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+	}
+
+	.piece-title {
+		display: block;
+		font-size: 1.1rem;
+		font-weight: 600;
+		color: var(--color-dark);
+		margin-bottom: var(--spacing-xs);
+	}
+
+	.choreographer {
+		font-size: 0.875rem;
+		color: var(--color-text-light);
+		font-style: italic;
+	}
+
+	.clips-section {
+		margin-top: var(--spacing-xl);
+		padding-top: var(--spacing-lg);
+		border-top: 1px solid var(--color-light-gray);
+	}
+
+	.no-items {
+		color: var(--color-text-light);
+		font-style: italic;
+	}
+</style>

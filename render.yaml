@@ -1,0 +1,64 @@
+services:
+  # Django web server
+  - type: web
+    name: video-cms
+    runtime: docker
+    plan: starter
+    preDeployCommand: python manage.py migrate --noinput
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: video-cms-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_API_TOKEN
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
+
+  # django-q2 worker for async tasks (transcoding, clip extraction)
+  - type: worker
+    name: video-cms-worker
+    runtime: docker
+    plan: starter
+    dockerCommand: python manage.py qcluster
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: video-cms-db
+          property: connectionString
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: video-cms
+          envVarKey: SECRET_KEY
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
+
+databases:
+  - name: video-cms-db
+    plan: starter
+    databaseName: video_cms

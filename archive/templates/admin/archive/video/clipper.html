@@ -1,0 +1,1770 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{% if not use_r2 %}
+<link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet" />
+<script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
+{% endif %}
+<style>
+.video-container {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    margin: 20px 0;
+}
+
+/* Video overlay indicators */
+.video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.video-clip-indicator {
+    position: absolute;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background: #4CAF50;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.video-clip-indicator.visible {
+    opacity: 1;
+}
+
+.video-clip-indicator.start {
+    border-left: 3px solid #2196F3;
+    background: linear-gradient(to right, #4CAF50, rgba(76, 175, 80, 0.7));
+}
+
+.video-clip-indicator.end {
+    border-right: 3px solid #2196F3;
+    background: linear-gradient(to left, #4CAF50, rgba(76, 175, 80, 0.7));
+}
+
+.video-clip-range {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: rgba(76, 175, 80, 0.15);
+    border-left: 2px solid #4CAF50;
+    border-right: 2px solid #4CAF50;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.video-clip-range.visible {
+    opacity: 1;
+}
+
+.video-playhead {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: #ff4444;
+    box-shadow: 0 0 4px rgba(255, 68, 68, 0.8);
+    z-index: 15;
+    transition: left 0.1s ease;
+}
+
+.video-playhead::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 10px;
+    height: 8px;
+    background: #ff4444;
+    border-radius: 0 0 4px 4px;
+}
+
+.video-playhead::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: -4px;
+    width: 10px;
+    height: 8px;
+    background: #ff4444;
+    border-radius: 4px 4px 0 0;
+}
+.clip-form {
+    background: #f8f8f8;
+    padding: 20px;
+    border-radius: 5px;
+    margin: 20px 0;
+}
+.clip-controls {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+}
+.time-display {
+    font-family: monospace;
+    font-size: 14px;
+    background: #333;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 3px;
+}
+.clips-list {
+    margin-top: 30px;
+}
+
+/* Timeline and Clip Indicators */
+.timeline-container {
+    position: relative;
+    width: 100%;
+    height: 10px;
+    background: #333;
+    margin: 10px 0;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.timeline-progress {
+    position: absolute;
+    height: 100%;
+    background: #ff6b6b;
+    border-radius: 5px;
+    transition: width 0.1s ease;
+}
+
+.clip-indicator {
+    position: absolute;
+    top: -5px;
+    width: 4px;
+    height: 20px;
+    background: #4CAF50;
+    border-radius: 2px;
+    cursor: ew-resize;
+    transition: all 0.2s ease;
+}
+
+.clip-indicator:hover {
+    background: #45a049;
+    width: 6px;
+    top: -6px;
+    height: 22px;
+}
+
+.clip-indicator.start {
+    border-left: 2px solid #2196F3;
+}
+
+.clip-indicator.end {
+    border-right: 2px solid #2196F3;
+}
+
+.clip-range {
+    position: absolute;
+    height: 100%;
+    background: rgba(76, 175, 80, 0.3);
+    border-radius: 5px;
+}
+
+.speed-controls {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.speed-btn {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    background: #f8f8f8;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.speed-btn:hover {
+    background: #e8e8e8;
+}
+
+.speed-btn.active {
+    background: #417690;
+    color: white;
+    border-color: #417690;
+}
+
+/* Coverage visualization */
+.coverage-container {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f8f8;
+    border-radius: 5px;
+}
+
+.coverage-timeline {
+    position: relative;
+    width: 100%;
+    height: 30px;
+    background: #ddd;
+    border-radius: 3px;
+    margin: 10px 0;
+}
+
+.coverage-clip {
+    position: absolute;
+    height: 100%;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border: 1px solid #3d8b40;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.coverage-clip:hover {
+    background: linear-gradient(135deg, #45a049, #4CAF50);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.coverage-gap {
+    position: absolute;
+    height: 100%;
+    background: repeating-linear-gradient(
+        45deg,
+        #ffcccb,
+        #ffcccb 4px,
+        #ffe4e1 4px,
+        #ffe4e1 8px
+    );
+    border: 1px dashed #ff6b6b;
+    border-radius: 2px;
+}
+
+.workflow-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 15px 0;
+    padding: 10px;
+    background: #e8f4f8;
+    border-radius: 5px;
+}
+
+.auto-stop-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.clip-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 3px;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: none;
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal-form-row {
+    margin-bottom: 15px;
+}
+
+.modal-form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+.modal-form-row input,
+.modal-form-row select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.modal-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+}
+
+.modal-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.modal-btn-primary {
+    background: #28a745;
+    color: white;
+}
+
+.modal-btn-primary:hover {
+    background: #218838;
+}
+
+.modal-btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.modal-btn-secondary:hover {
+    background: #5a6268;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label='archive' %}">Archive</a>
+    &rsaquo; <a href="{% url 'admin:archive_video_changelist' %}">Videos</a>
+    &rsaquo; <a href="{% url 'admin:archive_video_change' video.pk %}">{{ video.title }}</a>
+    &rsaquo; Create Clips
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<div class="video-container">
+    {% if use_r2 %}
+    <video
+        id="video-player"
+        controls
+        preload="auto"
+        width="800"
+        height="450"
+        style="background: #000;">
+        <source src="{{ r2_video_url }}" type="video/mp4" />
+    </video>
+    {% else %}
+    <video
+        id="video-player"
+        class="video-js vjs-default-skin"
+        controls
+        preload="auto"
+        width="800"
+        height="450"
+        data-setup="{}">
+        <source src="{{ video.cloudflare_playback_url }}" type="application/x-mpegURL" />
+        <p class="vjs-no-js">
+            To view this video please enable JavaScript, and consider upgrading to a
+            <a href="https://videojs.com/html5-video-support/" target="_blank">web browser that
+            <span class="vjs-no-js-link">supports HTML5 video</span></a>.
+        </p>
+    </video>
+    {% endif %}
+    
+    <!-- Video overlay indicators -->
+    <div class="video-overlay">
+        <div class="video-clip-range" id="video-clip-range"></div>
+        <div class="video-clip-indicator start" id="video-start-indicator"></div>
+        <div class="video-clip-indicator end" id="video-end-indicator"></div>
+        <div class="video-playhead" id="video-playhead"></div>
+    </div>
+</div>
+
+<!-- Coverage Visualization -->
+<div class="coverage-container">
+    <h3>Video Coverage <span id="coverage-stats"></span></h3>
+    <div class="coverage-timeline" id="coverage-timeline"></div>
+    <div style="font-size: 12px; color: #666;">
+        Green = clipped segments, Striped = gaps, Click clips to jump
+    </div>
+</div>
+
+<div class="clip-form">
+    <h2>Create New Clip</h2>
+    <form id="clip-form" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="video" value="{{ video.pk }}">
+        
+        <div class="workflow-controls">
+            <div class="auto-stop-toggle">
+                <input type="checkbox" id="auto-stop" checked>
+                <label for="auto-stop">Auto-stop at end time</label>
+            </div>
+            <button type="button" id="quick-save">Quick Save (title only)</button>
+            <button type="button" id="save-continue">Save & Continue</button>
+        </div>
+        
+        <div class="speed-controls">
+            <label>Speed:</label>
+            <button type="button" class="speed-btn" data-speed="0.25">0.25x</button>
+            <button type="button" class="speed-btn" data-speed="0.5">0.5x</button>
+            <button type="button" class="speed-btn active" data-speed="1">1x</button>
+            <button type="button" class="speed-btn" data-speed="1.25">1.25x</button>
+            <button type="button" class="speed-btn" data-speed="1.5">1.5x</button>
+            <button type="button" class="speed-btn" data-speed="2">2x</button>
+        </div>
+        
+        <div class="timeline-container" id="timeline">
+            <div class="timeline-progress" id="timeline-progress"></div>
+            <div class="clip-range" id="clip-range"></div>
+            <div class="clip-indicator start" id="start-indicator"></div>
+            <div class="clip-indicator end" id="end-indicator"></div>
+        </div>
+        
+        <div class="clip-controls">
+            <button type="button" id="set-start">Set Start Time</button>
+            <button type="button" id="set-end">Set End Time</button>
+            <button type="button" id="jump-to-start">Jump to Start</button>
+            <button type="button" id="jump-to-end">Jump to End</button>
+            <span class="time-display" id="current-time">00:00</span>
+        </div>
+        
+        <div style="font-size: 12px; color: #666; margin: 5px 0;">
+            <strong>Keyboard shortcuts:</strong> Space = play/pause, ← → = seek ±5s, Shift+← → = seek ±1s, S = set start, E = set end
+        </div>
+        
+        <div class="form-row">
+            <label>Start Time (seconds):</label>
+            <input type="number" name="start_time_seconds" id="start-time" min="0" step="0.1" required>
+            <span class="time-display" id="start-display">00:00</span>
+        </div>
+        
+        <div class="form-row">
+            <label>End Time (seconds):</label>
+            <input type="number" name="end_time_seconds" id="end-time" min="0" step="0.1" required>
+            <span class="time-display" id="end-display">00:00</span>
+        </div>
+        
+        <div class="form-row">
+            <label>Title:</label>
+            <input type="text" name="title" maxlength="255" required>
+        </div>
+        
+        <div class="form-row">
+            <label>Description:</label>
+            <textarea name="description" rows="3" cols="50"></textarea>
+        </div>
+        
+        <div class="form-row">
+            <label>Content Type:</label>
+            <select name="content_type">
+                <option value="unknown">Unknown/Unidentified</option>
+                <option value="performance">Performance</option>
+                <option value="rehearsal">Rehearsal</option>
+                <option value="class">Class/Training</option>
+                <option value="warmup">Warm-up</option>
+                <option value="backstage">Backstage</option>
+                <option value="interview">Interview</option>
+                <option value="curtain_call">Curtain Call</option>
+                <option value="intermission">Intermission</option>
+            </select>
+        </div>
+        
+        <div class="form-row">
+            <label>Dance Work:</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <select name="piece" id="piece-select" style="flex: 1;">
+                    <option value="">-- Select Dance Work --</option>
+                    {% for piece in pieces %}
+                        <option value="{{ piece.pk }}">{{ piece.title }}</option>
+                    {% endfor %}
+                </select>
+                <button type="button" id="add-piece-btn" style="background: #417690; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">+ Add New</button>
+            </div>
+            
+        </div>
+        
+        <div class="form-row">
+            <label>Performance:</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <select name="performance" id="performance-select" style="flex: 1;">
+                    <option value="">-- Select Performance --</option>
+                    {% for performance in performances %}
+                        <option value="{{ performance.pk }}">{{ performance.title }} ({{ performance.date }})</option>
+                    {% endfor %}
+                </select>
+                <button type="button" id="add-performance-btn" style="background: #417690; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">+ Add New</button>
+            </div>
+            
+        </div>
+        
+        <div class="form-row">
+            <label>Performers:</label>
+            <div id="performers-section">
+                <div id="performers-list" style="margin-bottom: 10px;"></div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select id="performer-select" style="flex: 1;">
+                        <option value="">-- Add Performer --</option>
+                        {% for person in people %}
+                            <option value="{{ person.pk }}">{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" id="performer-notes" placeholder="Role/notes" style="flex: 1;">
+                    <button type="button" id="add-performer" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Add</button>
+                    <button type="button" id="add-new-performer-btn" style="background: #417690; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">+ New Performer</button>
+                </div>
+                
+            </div>
+        </div>
+        
+        <div class="submit-row">
+            <input type="submit" value="Create Clip" class="default">
+            <button type="button" id="preview-clip">Preview Clip</button>
+        </div>
+    </form>
+</div>
+
+<div class="clips-list">
+    <h2>Existing Clips</h2>
+    {% for clip in video.clips.all %}
+        <div class="clip-item">
+            <h3><a href="{% url 'admin:archive_clip_change' clip.pk %}">{{ clip.title }}</a></h3>
+            <p><strong>Time:</strong> {{ clip.start_time_formatted }} - {{ clip.end_time_formatted }} ({{ clip.duration_formatted }})</p>
+            <p><strong>Type:</strong> {{ clip.get_content_type_display }}</p>
+            {% if clip.piece %}<p><strong>Dance Work:</strong> {{ clip.piece.title }}</p>{% endif %}
+            <button type="button" onclick="jumpToClip({{ clip.start_time_seconds }}, {{ clip.end_time_seconds }})">Jump to Clip</button>
+        </div>
+    {% empty %}
+        <p>No clips created yet.</p>
+    {% endfor %}
+</div>
+
+<!-- Modal: Add New Dance Work -->
+<div id="piece-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Add New Dance Work</h3>
+            <button class="modal-close" onclick="closePieceModal()">&times;</button>
+        </div>
+        <div class="modal-form-grid">
+            <div class="modal-form-row">
+                <label>Title:</label>
+                <input type="text" id="new-piece-title" required>
+            </div>
+            <div class="modal-form-row">
+                <label>Style:</label>
+                <input type="text" id="new-piece-style" placeholder="e.g., Ballet, Modern">
+            </div>
+        </div>
+        <div class="modal-form-grid">
+            <div class="modal-form-row">
+                <label>Choreographer:</label>
+                <div style="display: flex; gap: 5px;">
+                    <select id="new-piece-choreographer" style="flex: 1;">
+                        <option value="">-- Select Choreographer --</option>
+                        {% for person in people %}
+                            <option value="{{ person.pk }}">{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" id="add-choreographer-btn" class="modal-btn modal-btn-primary" style="padding: 6px 10px;">+</button>
+                </div>
+            </div>
+            <div class="modal-form-row">
+                <label>Year Created:</label>
+                <input type="number" id="new-piece-year" min="1800" max="2030">
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" id="cancel-piece" class="modal-btn modal-btn-secondary">Cancel</button>
+            <button type="button" id="save-piece" class="modal-btn modal-btn-primary">Save Dance Work</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add New Choreographer -->
+<div id="choreographer-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Add New Choreographer</h3>
+            <button class="modal-close" onclick="closeChoreographerModal()">&times;</button>
+        </div>
+        <div class="modal-form-row">
+            <label>Name:</label>
+            <input type="text" id="new-choreographer-name" required>
+        </div>
+        <div class="modal-actions">
+            <button type="button" id="cancel-choreographer" class="modal-btn modal-btn-secondary">Cancel</button>
+            <button type="button" id="save-choreographer" class="modal-btn modal-btn-primary">Save Choreographer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add New Performance -->
+<div id="performance-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Add New Performance</h3>
+            <button class="modal-close" onclick="closePerformanceModal()">&times;</button>
+        </div>
+        <div class="modal-form-grid">
+            <div class="modal-form-row">
+                <label>Title:</label>
+                <input type="text" id="new-performance-title" required>
+            </div>
+            <div class="modal-form-row">
+                <label>Date:</label>
+                <input type="date" id="new-performance-date" required>
+            </div>
+        </div>
+        <div class="modal-form-grid">
+            <div class="modal-form-row">
+                <label>Venue:</label>
+                <div style="display: flex; gap: 5px;">
+                    <select id="new-performance-venue" style="flex: 1;">
+                        <option value="">-- Select Venue --</option>
+                        {% for venue in venues %}
+                            <option value="{{ venue.pk }}">{{ venue.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" id="add-venue-btn" class="modal-btn modal-btn-primary" style="padding: 6px 10px;">+</button>
+                </div>
+            </div>
+            <div class="modal-form-row">
+                <label>Company:</label>
+                <div style="display: flex; gap: 5px;">
+                    <select id="new-performance-company" style="flex: 1;">
+                        <option value="">-- Select Company --</option>
+                        {% for company in companies %}
+                            <option value="{{ company.pk }}">{{ company.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" id="add-company-btn" class="modal-btn modal-btn-primary" style="padding: 6px 10px;">+</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" id="cancel-performance" class="modal-btn modal-btn-secondary">Cancel</button>
+            <button type="button" id="save-performance" class="modal-btn modal-btn-primary">Save Performance</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add New Venue -->
+<div id="venue-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Add New Venue</h3>
+            <button class="modal-close" onclick="closeVenueModal()">&times;</button>
+        </div>
+        <div class="modal-form-row">
+            <label>Name:</label>
+            <input type="text" id="new-venue-name" required>
+        </div>
+        <div class="modal-form-row">
+            <label>City:</label>
+            <input type="text" id="new-venue-city">
+        </div>
+        <div class="modal-actions">
+            <button type="button" id="cancel-venue" class="modal-btn modal-btn-secondary">Cancel</button>
+            <button type="button" id="save-venue" class="modal-btn modal-btn-primary">Save Venue</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add New Company -->
+<div id="company-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Add New Company</h3>
+            <button class="modal-close" onclick="closeCompanyModal()">&times;</button>
+        </div>
+        <div class="modal-form-row">
+            <label>Name:</label>
+            <input type="text" id="new-company-name" required>
+        </div>
+        <div class="modal-form-row">
+            <label>City:</label>
+            <input type="text" id="new-company-city">
+        </div>
+        <div class="modal-actions">
+            <button type="button" id="cancel-company" class="modal-btn modal-btn-secondary">Cancel</button>
+            <button type="button" id="save-company" class="modal-btn modal-btn-primary">Save Company</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add New Performer -->
+<div id="performer-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Add New Performer</h3>
+            <button class="modal-close" onclick="closePerformerModal()">&times;</button>
+        </div>
+        <div class="modal-form-row">
+            <label>Name:</label>
+            <input type="text" id="new-performer-name" required>
+        </div>
+        <div class="modal-form-row">
+            <label>Role:</label>
+            <input type="text" id="new-performer-role" placeholder="e.g., Principal, Soloist">
+        </div>
+        <div class="modal-actions">
+            <button type="button" id="cancel-new-performer" class="modal-btn modal-btn-secondary">Cancel</button>
+            <button type="button" id="save-new-performer" class="modal-btn modal-btn-primary">Save Performer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const USE_R2 = {{ use_r2|yesno:"true,false" }};
+let player;
+
+// Thin player abstraction — wraps Video.js or native HTMLVideoElement
+function createPlayer() {
+    const el = document.getElementById('video-player');
+    if (!USE_R2) {
+        // Video.js wrapper
+        const vjs = videojs('video-player');
+        return {
+            play: () => vjs.play(),
+            pause: () => vjs.pause(),
+            paused: () => vjs.paused(),
+            currentTime: (t) => t !== undefined ? vjs.currentTime(t) : vjs.currentTime(),
+            duration: () => vjs.duration(),
+            playbackRate: (r) => r !== undefined ? vjs.playbackRate(r) : vjs.playbackRate(),
+            on: (evt, fn) => vjs.on(evt, fn),
+            ready: (fn) => vjs.ready(fn),
+        };
+    }
+    // Native HTML5 video wrapper
+    return {
+        play: () => el.play(),
+        pause: () => el.pause(),
+        paused: () => el.paused,
+        currentTime: (t) => { if (t !== undefined) el.currentTime = t; return el.currentTime; },
+        duration: () => el.duration,
+        playbackRate: (r) => { if (r !== undefined) el.playbackRate = r; return el.playbackRate; },
+        on: (evt, fn) => el.addEventListener(evt, fn),
+        ready: (fn) => {
+            if (el.readyState >= 1) fn();
+            else el.addEventListener('loadedmetadata', fn);
+        },
+    };
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    player = createPlayer();
+    const currentTimeDisplay = document.getElementById('current-time');
+    const startTimeInput = document.getElementById('start-time');
+    const endTimeInput = document.getElementById('end-time');
+    const startDisplay = document.getElementById('start-display');
+    const endDisplay = document.getElementById('end-display');
+    
+    // Timeline elements
+    const timeline = document.getElementById('timeline');
+    const timelineProgress = document.getElementById('timeline-progress');
+    const clipRange = document.getElementById('clip-range');
+    const startIndicator = document.getElementById('start-indicator');
+    const endIndicator = document.getElementById('end-indicator');
+    
+    // Video overlay elements
+    const videoClipRange = document.getElementById('video-clip-range');
+    const videoStartIndicator = document.getElementById('video-start-indicator');
+    const videoEndIndicator = document.getElementById('video-end-indicator');
+    const videoPlayhead = document.getElementById('video-playhead');
+    
+    let selectedPerformers = [];
+    let isDragging = false;
+    let dragTarget = null;
+    let videoDuration = 0;
+    let autoStopEnabled = true;
+    let autoStopInterval = null;
+    
+    // Get existing clips data from template
+    const existingClips = [
+        {% for clip in video.clips.all %}
+        {
+            id: "{{ clip.pk }}",
+            title: "{{ clip.title|escapejs }}",
+            start: {{ clip.start_time_seconds }},
+            end: {{ clip.end_time_seconds }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    // Initialize timeline and controls when video is ready
+    function onMetadataLoaded() {
+        videoDuration = player.duration();
+        updateTimelineIndicators();
+        renderCoverage();
+    }
+    player.ready(() => {
+        // In native HTML5 mode, ready() fires on loadedmetadata, so duration
+        // is already available — call onMetadataLoaded directly.
+        // In Video.js mode, ready() fires before loadedmetadata, so we need
+        // to listen for the event.
+        if (player.duration() && player.duration() > 0) {
+            onMetadataLoaded();
+        } else {
+            player.on('loadedmetadata', onMetadataLoaded);
+        }
+    });
+    
+    // Coverage visualization
+    function renderCoverage() {
+        if (!videoDuration) return;
+        
+        const coverageTimeline = document.getElementById('coverage-timeline');
+        const coverageStats = document.getElementById('coverage-stats');
+        
+        // Clear existing coverage
+        coverageTimeline.innerHTML = '';
+        
+        // Sort clips by start time
+        const sortedClips = [...existingClips].sort((a, b) => a.start - b.start);
+        
+        // Calculate coverage stats
+        let totalCovered = 0;
+        let lastEnd = 0;
+        
+        sortedClips.forEach((clip, index) => {
+            const startPercent = (clip.start / videoDuration) * 100;
+            const endPercent = (clip.end / videoDuration) * 100;
+            const width = endPercent - startPercent;
+            
+            // Add gap before this clip if there is one
+            if (clip.start > lastEnd && lastEnd > 0) {
+                const gapStart = (lastEnd / videoDuration) * 100;
+                const gapWidth = startPercent - gapStart;
+                const gapEl = document.createElement('div');
+                gapEl.className = 'coverage-gap';
+                gapEl.style.left = gapStart + '%';
+                gapEl.style.width = gapWidth + '%';
+                gapEl.title = `Gap: ${formatTime(lastEnd)} - ${formatTime(clip.start)}`;
+                coverageTimeline.appendChild(gapEl);
+            }
+            
+            // Add clip
+            const clipEl = document.createElement('div');
+            clipEl.className = 'coverage-clip';
+            clipEl.style.left = startPercent + '%';
+            clipEl.style.width = width + '%';
+            clipEl.textContent = clip.title.substring(0, 20) + (clip.title.length > 20 ? '...' : '');
+            clipEl.title = `${clip.title} (${formatTime(clip.start)} - ${formatTime(clip.end)})`;
+            clipEl.onclick = () => jumpToClip(clip.start, clip.end);
+            coverageTimeline.appendChild(clipEl);
+            
+            totalCovered += (clip.end - clip.start);
+            lastEnd = Math.max(lastEnd, clip.end);
+        });
+        
+        // Add final gap if video extends beyond last clip
+        if (lastEnd < videoDuration) {
+            const gapStart = (lastEnd / videoDuration) * 100;
+            const gapWidth = 100 - gapStart;
+            const gapEl = document.createElement('div');
+            gapEl.className = 'coverage-gap';
+            gapEl.style.left = gapStart + '%';
+            gapEl.style.width = gapWidth + '%';
+            gapEl.title = `Gap: ${formatTime(lastEnd)} - ${formatTime(videoDuration)}`;
+            coverageTimeline.appendChild(gapEl);
+        }
+        
+        // Update stats
+        const coveragePercent = ((totalCovered / videoDuration) * 100).toFixed(1);
+        coverageStats.textContent = `(${coveragePercent}% covered, ${existingClips.length} clips)`;
+    }
+    
+    // Auto-stop functionality
+    function checkAutoStop() {
+        if (!autoStopEnabled) return;
+        
+        const currentTime = player.currentTime();
+        const endTime = parseFloat(endTimeInput.value);
+        
+        if (endTime > 0 && currentTime >= endTime) {
+            player.pause();
+            // Flash the end indicator
+            videoEndIndicator.style.background = '#ff4444';
+            setTimeout(() => {
+                videoEndIndicator.style.background = '#4CAF50';
+            }, 200);
+        }
+    }
+    
+    // Speed control functionality
+    document.querySelectorAll('.speed-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const speed = parseFloat(this.dataset.speed);
+            player.playbackRate(speed);
+            
+            // Update active button
+            document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+    
+    // Timeline functionality
+    function updateTimelineIndicators() {
+        if (!videoDuration) return;
+        
+        const currentTime = player.currentTime();
+        const startTime = parseFloat(startTimeInput.value) || 0;
+        const endTime = parseFloat(endTimeInput.value) || 0;
+        
+        // Update timeline progress bar
+        const progressPercent = (currentTime / videoDuration) * 100;
+        timelineProgress.style.width = progressPercent + '%';
+        
+        // Update video playhead position
+        videoPlayhead.style.left = progressPercent + '%';
+        
+        // Update timeline clip indicators
+        if (startTime >= 0) {
+            const startPercent = (startTime / videoDuration) * 100;
+            startIndicator.style.left = startPercent + '%';
+            startIndicator.style.display = 'block';
+        } else {
+            startIndicator.style.display = 'none';
+        }
+        
+        if (endTime > 0) {
+            const endPercent = (endTime / videoDuration) * 100;
+            endIndicator.style.left = endPercent + '%';
+            endIndicator.style.display = 'block';
+        } else {
+            endIndicator.style.display = 'none';
+        }
+        
+        // Update timeline clip range
+        if (startTime >= 0 && endTime > startTime) {
+            const startPercent = (startTime / videoDuration) * 100;
+            const endPercent = (endTime / videoDuration) * 100;
+            clipRange.style.left = startPercent + '%';
+            clipRange.style.width = (endPercent - startPercent) + '%';
+            clipRange.style.display = 'block';
+        } else {
+            clipRange.style.display = 'none';
+        }
+        
+        // Update video overlay indicators
+        if (startTime >= 0) {
+            const startPercent = (startTime / videoDuration) * 100;
+            videoStartIndicator.style.left = startPercent + '%';
+            videoStartIndicator.classList.add('visible');
+        } else {
+            videoStartIndicator.classList.remove('visible');
+        }
+        
+        if (endTime > 0) {
+            const endPercent = (endTime / videoDuration) * 100;
+            videoEndIndicator.style.left = endPercent + '%';
+            videoEndIndicator.classList.add('visible');
+        } else {
+            videoEndIndicator.classList.remove('visible');
+        }
+        
+        // Update video overlay clip range
+        if (startTime >= 0 && endTime > startTime) {
+            const startPercent = (startTime / videoDuration) * 100;
+            const endPercent = (endTime / videoDuration) * 100;
+            videoClipRange.style.left = startPercent + '%';
+            videoClipRange.style.width = (endPercent - startPercent) + '%';
+            videoClipRange.classList.add('visible');
+        } else {
+            videoClipRange.classList.remove('visible');
+        }
+    }
+    
+    // Timeline click to seek
+    timeline.addEventListener('click', function(e) {
+        if (isDragging) return;
+        
+        const rect = timeline.getBoundingClientRect();
+        const clickPercent = (e.clientX - rect.left) / rect.width;
+        const seekTime = clickPercent * videoDuration;
+        player.currentTime(seekTime);
+    });
+    
+    // Dragging functionality
+    function startDrag(e, target) {
+        isDragging = true;
+        dragTarget = target;
+        e.preventDefault();
+    }
+    
+    startIndicator.addEventListener('mousedown', (e) => startDrag(e, 'start'));
+    endIndicator.addEventListener('mousedown', (e) => startDrag(e, 'end'));
+    
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging || !dragTarget) return;
+        
+        const rect = timeline.getBoundingClientRect();
+        const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        const time = percent * videoDuration;
+        
+        if (dragTarget === 'start') {
+            startTimeInput.value = time.toFixed(1);
+            startDisplay.textContent = formatTime(time);
+        } else if (dragTarget === 'end') {
+            endTimeInput.value = time.toFixed(1);
+            endDisplay.textContent = formatTime(time);
+        }
+        
+        updateTimelineIndicators();
+    });
+    
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+        dragTarget = null;
+    });
+    
+    // Jump to clip boundaries
+    document.getElementById('jump-to-start').addEventListener('click', function() {
+        const startTime = parseFloat(startTimeInput.value);
+        if (startTime >= 0) {
+            player.currentTime(startTime);
+        }
+    });
+    
+    document.getElementById('jump-to-end').addEventListener('click', function() {
+        const endTime = parseFloat(endTimeInput.value);
+        if (endTime > 0) {
+            player.currentTime(endTime);
+        }
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Only handle shortcuts when not typing in input fields
+        if (e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'textarea') {
+            return;
+        }
+        
+        switch(e.key) {
+            case ' ':
+                e.preventDefault();
+                if (player.paused()) {
+                    player.play();
+                } else {
+                    player.pause();
+                }
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                const seekBackAmount = e.shiftKey ? 1 : 5;
+                player.currentTime(Math.max(0, player.currentTime() - seekBackAmount));
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                const seekForwardAmount = e.shiftKey ? 1 : 5;
+                player.currentTime(Math.min(videoDuration, player.currentTime() + seekForwardAmount));
+                break;
+            case 's':
+            case 'S':
+                e.preventDefault();
+                const currentTime = player.currentTime();
+                startTimeInput.value = currentTime.toFixed(1);
+                startDisplay.textContent = formatTime(currentTime);
+                updateTimelineIndicators();
+                
+                // Auto-resume if paused (user likely wants to find end point)
+                if (player.paused()) {
+                    player.play();
+                }
+                break;
+            case 'e':
+            case 'E':
+                e.preventDefault();
+                let currentTimeEnd = player.currentTime();
+                // Clamp to video duration
+                if (videoDuration && currentTimeEnd > videoDuration) {
+                    currentTimeEnd = videoDuration;
+                }
+                endTimeInput.value = currentTimeEnd.toFixed(1);
+                endDisplay.textContent = formatTime(currentTimeEnd);
+                updateTimelineIndicators();
+                break;
+        }
+    });
+    
+    // Update current time display and timeline
+    player.on('timeupdate', function() {
+        const currentTime = player.currentTime();
+        currentTimeDisplay.textContent = formatTime(currentTime);
+        updateTimelineIndicators();
+        checkAutoStop();
+    });
+    
+    // Auto-stop toggle
+    document.getElementById('auto-stop').addEventListener('change', function() {
+        autoStopEnabled = this.checked;
+    });
+    
+    // Quick save workflow
+    document.getElementById('quick-save').addEventListener('click', function() {
+        const startTime = parseFloat(startTimeInput.value);
+        const endTime = parseFloat(endTimeInput.value);
+
+        if (isNaN(startTime) || isNaN(endTime) || endTime <= startTime) {
+            alert('Please set valid start and end times');
+            return;
+        }
+        
+        const title = prompt('Clip title:', `Clip ${formatTime(startTime)}-${formatTime(endTime)}`);
+        if (!title) return;
+        
+        saveClip({
+            title: title,
+            start_time_seconds: startTime,
+            end_time_seconds: endTime,
+            description: '',
+            content_type: 'unknown'
+        });
+    });
+    
+    // Save and continue workflow
+    document.getElementById('save-continue').addEventListener('click', function() {
+        const startTime = parseFloat(startTimeInput.value);
+        const endTime = parseFloat(endTimeInput.value);
+
+        if (isNaN(startTime) || isNaN(endTime) || endTime <= startTime) {
+            alert('Please set valid start and end times');
+            return;
+        }
+        
+        const title = prompt('Clip title:', `Clip ${formatTime(startTime)}-${formatTime(endTime)}`);
+        if (!title) return;
+        
+        saveClip({
+            title: title,
+            start_time_seconds: startTime,
+            end_time_seconds: endTime,
+            description: '',
+            content_type: 'unknown'
+        }, true); // true = continue after save
+    });
+    
+    // Save clip function
+    function saveClip(clipData, continueAfter = false) {
+        // Clamp end time to video duration
+        let endTime = clipData.end_time_seconds;
+        if (videoDuration && endTime > videoDuration) {
+            endTime = videoDuration;
+        }
+
+        const formData = new FormData();
+        formData.append('video', '{{ video.pk }}');
+        formData.append('title', clipData.title);
+        formData.append('start_time_seconds', clipData.start_time_seconds);
+        formData.append('end_time_seconds', endTime);
+        formData.append('description', clipData.description);
+        formData.append('content_type', clipData.content_type);
+        formData.append('performers_data', JSON.stringify([]));
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                // Add to existing clips array for coverage update
+                existingClips.push({
+                    id: Date.now(), // temporary ID
+                    title: clipData.title,
+                    start: clipData.start_time_seconds,
+                    end: clipData.end_time_seconds
+                });
+                
+                renderCoverage();
+                
+                if (continueAfter) {
+                    // Clear current clip and position at end time for next clip
+                    player.currentTime(clipData.end_time_seconds);
+                    startTimeInput.value = clipData.end_time_seconds;
+                    startDisplay.textContent = formatTime(clipData.end_time_seconds);
+                    endTimeInput.value = '';
+                    endDisplay.textContent = '00:00';
+                    updateTimelineIndicators();
+                    alert('Clip saved! Ready for next clip.');
+                } else {
+                    alert('Clip saved successfully!');
+                    window.location.reload();
+                }
+            } else {
+                alert('Error saving clip');
+            }
+        })
+        .catch(error => {
+            alert('Error saving clip: ' + error);
+        });
+    }
+    
+    // Set start time button
+    document.getElementById('set-start').addEventListener('click', function() {
+        const currentTime = player.currentTime();
+        startTimeInput.value = currentTime.toFixed(1);
+        startDisplay.textContent = formatTime(currentTime);
+        updateTimelineIndicators();
+        
+        // Auto-resume if paused (user likely wants to find end point)
+        if (player.paused()) {
+            player.play();
+        }
+    });
+    
+    // Set end time button
+    document.getElementById('set-end').addEventListener('click', function() {
+        let currentTime = player.currentTime();
+        // Clamp to video duration
+        if (videoDuration && currentTime > videoDuration) {
+            currentTime = videoDuration;
+        }
+        endTimeInput.value = currentTime.toFixed(1);
+        endDisplay.textContent = formatTime(currentTime);
+        updateTimelineIndicators();
+    });
+    
+    // Update time displays when inputs change
+    startTimeInput.addEventListener('input', function() {
+        startDisplay.textContent = formatTime(parseFloat(this.value) || 0);
+        updateTimelineIndicators();
+    });
+
+    endTimeInput.addEventListener('input', function() {
+        let endTime = parseFloat(this.value) || 0;
+        // Clamp to video duration
+        if (videoDuration && endTime > videoDuration) {
+            endTime = videoDuration;
+            this.value = endTime.toFixed(1);
+        }
+        endDisplay.textContent = formatTime(endTime);
+        updateTimelineIndicators();
+    });
+    
+    // Preview clip functionality
+    document.getElementById('preview-clip').addEventListener('click', function() {
+        const startTime = parseFloat(startTimeInput.value);
+        const endTime = parseFloat(endTimeInput.value);
+        
+        if (startTime >= 0 && endTime > startTime) {
+            player.currentTime(startTime);
+            player.play();
+            
+            // Stop at end time
+            const checkTime = setInterval(function() {
+                if (player.currentTime() >= endTime) {
+                    player.pause();
+                    clearInterval(checkTime);
+                }
+            }, 100);
+        } else {
+            alert('Please set valid start and end times');
+        }
+    });
+    
+    // Modal Management Functions
+    function openModal(modalId) {
+        document.getElementById(modalId).style.display = 'block';
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+    
+    // Modal close functions (called by onclick)
+    window.closePieceModal = () => closeModal('piece-modal');
+    window.closeChoreographerModal = () => closeModal('choreographer-modal');
+    window.closePerformanceModal = () => closeModal('performance-modal');
+    window.closeVenueModal = () => closeModal('venue-modal');
+    window.closeCompanyModal = () => closeModal('company-modal');
+    window.closePerformerModal = () => closeModal('performer-modal');
+    
+    // Close modal when clicking outside
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+    });
+    
+    // Clear form function
+    function clearForm(formId, fields) {
+        fields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) field.value = '';
+        });
+    }
+    
+    // Quick-add functionality
+    
+    // Add Piece functionality
+    document.getElementById('add-piece-btn').addEventListener('click', () => openModal('piece-modal'));
+    document.getElementById('cancel-piece').addEventListener('click', () => {
+        closeModal('piece-modal');
+        clearForm('piece-form', ['new-piece-title', 'new-piece-style', 'new-piece-choreographer', 'new-piece-year']);
+    });
+    
+    // Add Choreographer functionality  
+    document.getElementById('add-choreographer-btn').addEventListener('click', () => openModal('choreographer-modal'));
+    document.getElementById('cancel-choreographer').addEventListener('click', () => {
+        closeModal('choreographer-modal');
+        clearForm('choreographer-form', ['new-choreographer-name']);
+    });
+    
+    document.getElementById('save-choreographer').addEventListener('click', function() {
+        const name = document.getElementById('new-choreographer-name').value;
+        
+        if (!name) {
+            alert('Please enter choreographer name');
+            return;
+        }
+        
+        // Create the person via API
+        fetch('/api/people/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            body: JSON.stringify({
+                name: name,
+                role: 'Choreographer'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Add to piece choreographer select and AUTO-SELECT
+            const pieceOption = new Option(data.name, data.id);
+            pieceOption.selected = true;
+            document.getElementById('new-piece-choreographer').add(pieceOption);
+            
+            // Also add to main performer select
+            const performerOption = new Option(data.name, data.id);
+            document.getElementById('performer-select').add(performerOption);
+            
+            closeModal('choreographer-modal');
+            clearForm('choreographer-form', ['new-choreographer-name']);
+        })
+        .catch(error => {
+            alert('Error creating choreographer: ' + error);
+        });
+    });
+    
+    document.getElementById('save-piece').addEventListener('click', function() {
+        const title = document.getElementById('new-piece-title').value;
+        const style = document.getElementById('new-piece-style').value;
+        const choreographer = document.getElementById('new-piece-choreographer').value;
+        const year = document.getElementById('new-piece-year').value;
+
+        if (!title) {
+            alert('Please enter a dance work title');
+            return;
+        }
+
+        // Create the piece via API
+        fetch('/api/pieces/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            body: JSON.stringify({
+                title: title,
+                style: style,
+                choreographers: choreographer && !isNaN(parseInt(choreographer)) ? [parseInt(choreographer)] : [],
+                year_created: year || null
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Add to main piece select and AUTO-SELECT
+            const option = new Option(data.title, data.id);
+            option.selected = true;
+            document.getElementById('piece-select').add(option);
+            
+            closeModal('piece-modal');
+            clearForm('piece-form', ['new-piece-title', 'new-piece-style', 'new-piece-choreographer', 'new-piece-year']);
+        })
+        .catch(error => {
+            alert('Error creating dance work: ' + error);
+        });
+    });
+    
+    // Add Venue functionality
+    document.getElementById('add-venue-btn').addEventListener('click', () => openModal('venue-modal'));
+    document.getElementById('cancel-venue').addEventListener('click', () => {
+        closeModal('venue-modal');
+        clearForm('venue-form', ['new-venue-name', 'new-venue-city']);
+    });
+    
+    document.getElementById('save-venue').addEventListener('click', function() {
+        const name = document.getElementById('new-venue-name').value;
+        const city = document.getElementById('new-venue-city').value;
+        
+        if (!name) {
+            alert('Please enter venue name');
+            return;
+        }
+        
+        // Create the venue via API
+        fetch('/api/venues/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            body: JSON.stringify({
+                name: name,
+                city: city || '',
+                country: 'USA' // Default country
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Add to performance venue select and AUTO-SELECT
+            const option = new Option(data.name, data.id);
+            option.selected = true;
+            document.getElementById('new-performance-venue').add(option);
+            
+            closeModal('venue-modal');
+            clearForm('venue-form', ['new-venue-name', 'new-venue-city']);
+        })
+        .catch(error => {
+            alert('Error creating venue: ' + error);
+        });
+    });
+    
+    // Add Company functionality
+    document.getElementById('add-company-btn').addEventListener('click', () => openModal('company-modal'));
+    document.getElementById('cancel-company').addEventListener('click', () => {
+        closeModal('company-modal');
+        clearForm('company-form', ['new-company-name', 'new-company-city']);
+    });
+    
+    document.getElementById('save-company').addEventListener('click', function() {
+        const name = document.getElementById('new-company-name').value;
+        const city = document.getElementById('new-company-city').value;
+        
+        if (!name) {
+            alert('Please enter company name');
+            return;
+        }
+        
+        // Create the company via API
+        fetch('/api/companies/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            body: JSON.stringify({
+                name: name,
+                city: city || '',
+                country: 'USA' // Default country
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Add to performance company select and AUTO-SELECT
+            const option = new Option(data.name, data.id);
+            option.selected = true;
+            document.getElementById('new-performance-company').add(option);
+            
+            closeModal('company-modal');
+            clearForm('company-form', ['new-company-name', 'new-company-city']);
+        })
+        .catch(error => {
+            alert('Error creating company: ' + error);
+        });
+    });
+    
+    // Add Performance functionality
+    document.getElementById('add-performance-btn').addEventListener('click', () => openModal('performance-modal'));
+    document.getElementById('cancel-performance').addEventListener('click', () => {
+        closeModal('performance-modal');
+        clearForm('performance-form', ['new-performance-title', 'new-performance-date', 'new-performance-venue', 'new-performance-company']);
+    });
+    
+    document.getElementById('save-performance').addEventListener('click', function() {
+        const title = document.getElementById('new-performance-title').value;
+        const date = document.getElementById('new-performance-date').value;
+        const venue = document.getElementById('new-performance-venue').value;
+        const company = document.getElementById('new-performance-company').value;
+        
+        if (!title || !date) {
+            alert('Please enter title and date');
+            return;
+        }
+        
+        if (!venue || !company) {
+            alert('Please select venue and company');
+            return;
+        }
+        
+        // Create the performance via API
+        fetch('/api/performances/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            body: JSON.stringify({
+                title: title,
+                date: date,
+                venue: venue,
+                company: company
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Add to main performance select and AUTO-SELECT
+            const option = new Option(`${data.title} (${data.date})`, data.id);
+            option.selected = true;
+            document.getElementById('performance-select').add(option);
+            
+            closeModal('performance-modal');
+            clearForm('performance-form', ['new-performance-title', 'new-performance-date', 'new-performance-venue', 'new-performance-company']);
+        })
+        .catch(error => {
+            alert('Error creating performance: ' + error);
+        });
+    });
+    
+    // Add New Performer functionality
+    document.getElementById('add-new-performer-btn').addEventListener('click', () => openModal('performer-modal'));
+    document.getElementById('cancel-new-performer').addEventListener('click', () => {
+        closeModal('performer-modal');
+        clearForm('performer-form', ['new-performer-name', 'new-performer-role']);
+    });
+    
+    document.getElementById('save-new-performer').addEventListener('click', function() {
+        const name = document.getElementById('new-performer-name').value;
+        const role = document.getElementById('new-performer-role').value;
+        
+        if (!name) {
+            alert('Please enter performer name');
+            return;
+        }
+        
+        // Create the person via API
+        fetch('/api/people/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            body: JSON.stringify({
+                name: name,
+                role: role || 'Performer'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Add to performer select and AUTO-SELECT
+            const option = new Option(data.name, data.id);
+            option.selected = true;
+            document.getElementById('performer-select').add(option);
+            
+            // Also add to choreographer select for pieces
+            const choreographerOption = new Option(data.name, data.id);
+            document.getElementById('new-piece-choreographer').add(choreographerOption);
+            
+            closeModal('performer-modal');
+            clearForm('performer-form', ['new-performer-name', 'new-performer-role']);
+        })
+        .catch(error => {
+            alert('Error creating performer: ' + error);
+        });
+    });
+    
+    // Performers functionality
+    function updatePerformersList() {
+        const performersList = document.getElementById('performers-list');
+        performersList.innerHTML = '';
+        
+        selectedPerformers.forEach((performer, index) => {
+            const div = document.createElement('div');
+            div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 5px; background: #e8e8e8; margin: 2px 0; border-radius: 3px;';
+            div.innerHTML = `
+                <span><strong>${performer.name}</strong>${performer.notes ? ` - ${performer.notes}` : ''}</span>
+                <button type="button" onclick="removePerformer(${index})" style="background: #dc3545; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer;">Remove</button>
+            `;
+            performersList.appendChild(div);
+        });
+    }
+    
+    window.removePerformer = function(index) {
+        selectedPerformers.splice(index, 1);
+        updatePerformersList();
+    };
+    
+    document.getElementById('add-performer').addEventListener('click', function() {
+        const performerSelect = document.getElementById('performer-select');
+        const notesInput = document.getElementById('performer-notes');
+        
+        if (!performerSelect.value) {
+            alert('Please select a performer');
+            return;
+        }
+        
+        const performerId = performerSelect.value;
+        const performerName = performerSelect.options[performerSelect.selectedIndex].text;
+        const notes = notesInput.value;
+        
+        // Check if performer already added
+        if (selectedPerformers.some(p => p.id === performerId)) {
+            alert('Performer already added');
+            return;
+        }
+        
+        selectedPerformers.push({
+            id: performerId,
+            name: performerName,
+            notes: notes
+        });
+        
+        updatePerformersList();
+        performerSelect.value = '';
+        notesInput.value = '';
+    });
+    
+    // Update form submission to include performers
+    document.getElementById('clip-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        // Clamp end time to video duration before submission
+        let endTime = parseFloat(endTimeInput.value);
+        if (videoDuration && endTime > videoDuration) {
+            endTime = videoDuration;
+            formData.set('end_time_seconds', endTime);
+        }
+
+        // Add performers as JSON
+        const performersData = selectedPerformers.map(p => ({
+            person_id: p.id,
+            notes: p.notes
+        }));
+        formData.append('performers_data', JSON.stringify(performersData));
+        
+        // Submit via fetch to handle the performers
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Error creating clip');
+            }
+        })
+        .catch(error => {
+            alert('Error creating clip: ' + error);
+        });
+    });
+});
+
+let _jumpToClipInterval = null;
+function jumpToClip(startTime, endTime) {
+    if (_jumpToClipInterval) clearInterval(_jumpToClipInterval);
+    player.currentTime(startTime);
+    player.play();
+
+    // Optionally stop at end time
+    _jumpToClipInterval = setInterval(function() {
+        if (player.currentTime() >= endTime) {
+            player.pause();
+            clearInterval(_jumpToClipInterval);
+            _jumpToClipInterval = null;
+        }
+    }, 100);
+}
+</script>
+{% endblock %}

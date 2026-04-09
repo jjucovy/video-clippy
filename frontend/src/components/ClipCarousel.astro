@@ -1,0 +1,1058 @@
+---
+interface Props {
+  clips: any[];
+  pieceTitle: string;
+}
+
+const { clips, pieceTitle } = Astro.props;
+
+// Sort clips chronologically by performance date, then by creation date
+const sortedClips = clips.sort((a, b) => {
+  if (a.performance?.date && b.performance?.date) {
+    return new Date(a.performance.date).getTime() - new Date(b.performance.date).getTime();
+  }
+  if (a.performance?.date) return -1;
+  if (b.performance?.date) return 1;
+  return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+});
+---
+
+<div class="clip-carousel-container" data-clips={JSON.stringify(sortedClips)}>
+  {sortedClips.length === 0 ? (
+    <div class="empty-state">
+      <h3>No clips available</h3>
+      <p>There are no clips for this dance work yet. Check back soon!</p>
+    </div>
+  ) : (
+    <>
+      <div class="carousel-header">
+        <h2 class="carousel-title">
+          <span class="piece-title">{pieceTitle}</span>
+          <span class="clip-counter">
+            <span class="current-clip">1</span> of {sortedClips.length}
+          </span>
+        </h2>
+        <p class="carousel-subtitle">Navigate through performances chronologically</p>
+      </div>
+
+      <div class="carousel-main">
+        <div class="video-section">
+          <div class="carousel-nav">
+            <button class="nav-button prev-button" title="Previous clip" disabled>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+              </svg>
+            </button>
+            <button class="nav-button next-button" title="Next clip">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="video-players-container">
+            {sortedClips.map((clip, index) => {
+              const playerId = `video-player-clip-${index}`;
+              const isMP4 = clip.is_extracted || (clip.video_url && clip.video_url.endsWith('.mp4'));
+              return (
+                <div
+                  class={`video-player-wrapper ${index === 0 ? 'active' : 'hidden'}`}
+                  data-clip-index={index}
+                  data-is-mp4={isMP4 ? 'true' : 'false'}
+                >
+                  {!isMP4 && <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet" />}
+                  <div class="video-container">
+                    {isMP4 ? (
+                      <video
+                        id={playerId}
+                        controls
+                        preload="auto"
+                        width="800"
+                        height="450"
+                        poster={clip.thumbnail_url}
+                      >
+                        <source src={clip.video_url} type="video/mp4" />
+                      </video>
+                    ) : (
+                      <video
+                        id={playerId}
+                        class="video-js vjs-default-skin"
+                        controls
+                        preload="auto"
+                        width="800"
+                        height="450"
+                        poster={clip.thumbnail_url || clip.video.cloudflare_thumbnail_url}
+                        data-setup="{}"
+                        data-stream-id={clip.video.cloudflare_stream_id}
+                        data-start-time={clip.start_time_seconds}
+                        data-end-time={clip.end_time_seconds}
+                      >
+                        <source src={clip.video_url || clip.video.cloudflare_playback_url} type="application/x-mpegURL" />
+                        <p class="vjs-no-js">
+                          To view this video please enable JavaScript, and consider upgrading to a
+                          <a href="https://videojs.com/html5-video-support/" target="_blank">web browser that
+                          <span class="vjs-no-js-link">supports HTML5 video</span></a>.
+                        </p>
+                      </video>
+                    )}
+                    <p class="video-title">{clip.title}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div class="carousel-thumbnails">
+            {sortedClips.map((clip, index) => (
+              <button 
+                class={`thumbnail-button ${index === 0 ? 'active' : ''}`}
+                data-clip-index={index}
+                title={clip.title}
+              >
+                <img
+                  src={clip.thumbnail_url || clip.video.cloudflare_thumbnail_url}
+                  alt={clip.title}
+                  loading="lazy"
+                />
+                <span class="thumbnail-overlay">{index + 1}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <!-- Metadata Drawer - Overlay on sidebar -->
+      <div class="metadata-drawer" data-visible="true">
+    <div class="drawer-handle">
+      <button class="drawer-toggle" title="Toggle metadata panel">
+        <svg class="chevron-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
+        </svg>
+        <span class="handle-text">Clip Details</span>
+      </button>
+    </div>
+    
+    <div class="drawer-content">
+      <div class="metadata-content">
+        <h3 class="clip-title" data-field="title">{sortedClips[0]?.title}</h3>
+        
+        <div class="metadata-grid">
+          <div class="metadata-item">
+            <span class="label">Duration</span>
+            <span class="value" data-field="duration">{sortedClips[0]?.duration_formatted}s</span>
+          </div>
+          
+          <div class="metadata-item">
+            <span class="label">Created</span>
+            <span class="value" data-field="created">{new Date(sortedClips[0]?.created_at).toLocaleDateString()}</span>
+          </div>
+          
+          {sortedClips[0]?.performance ? (
+            <>
+              <div class="metadata-item">
+                <span class="label">Performance</span>
+                <span class="value" data-field="performance">{sortedClips[0].performance.title}</span>
+              </div>
+              
+              {sortedClips[0].performance.date && (
+                <div class="metadata-item">
+                  <span class="label">Date</span>
+                  <span class="value" data-field="date">{new Date(sortedClips[0].performance.date).toLocaleDateString()}</span>
+                </div>
+              )}
+              
+              {sortedClips[0].performance.venue && (
+                <div class="metadata-item">
+                  <span class="label">Venue</span>
+                  <span class="value" data-field="venue">{sortedClips[0].performance.venue.name}</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <div class="metadata-item">
+              <span class="label">Performance</span>
+              <span class="value missing" data-field="performance">Not specified</span>
+            </div>
+          )}
+          
+          {sortedClips[0]?.verification_date && (
+            <div class="metadata-item">
+              <span class="label">Verified</span>
+              <span class="value" data-field="verified">{new Date(sortedClips[0].verification_date).toLocaleDateString()}</span>
+            </div>
+          )}
+        </div>
+
+        {sortedClips[0]?.description ? (
+          <div class="description">
+            <span class="label">Description</span>
+            <p class="value" data-field="description">{sortedClips[0].description}</p>
+          </div>
+        ) : (
+          <div class="description">
+            <span class="label">Description</span>
+            <p class="value missing" data-field="description">No description provided</p>
+          </div>
+        )}
+
+        {/* Performers section */}
+        <div class="performers-section">
+          <span class="label">Performers</span>
+          {sortedClips[0]?.clip_performers && sortedClips[0].clip_performers.length > 0 ? (
+            <div class="performers-list" data-field="performers">
+              {sortedClips[0].clip_performers.map((performer) => (
+                <span class="performer-tag">{performer.person?.name}</span>
+              ))}
+            </div>
+          ) : (
+            <div class="performers-list" data-field="performers">
+              <span class="value missing">No performers listed</span>
+            </div>
+          )}
+        </div>
+
+        {/* Video metadata */}
+        <div class="video-metadata">
+          <span class="label">Source Video</span>
+          <div class="video-info">
+            <p class="video-title">{sortedClips[0]?.video?.title}</p>
+            {sortedClips[0]?.video?.description && (
+              <p class="video-description">{sortedClips[0].video.description}</p>
+            )}
+            <p class="video-details">
+              {sortedClips[0]?.video?.duration_formatted} • 
+              Uploaded {new Date(sortedClips[0]?.video?.upload_date).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    </>
+  )}
+</div>
+
+<style>
+  .clip-carousel-container {
+    background: transparent;
+    overflow: visible;
+  }
+
+  .carousel-header {
+    padding: var(--spacing-lg) 0;
+    border-bottom: 1px solid var(--color-light-gray);
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .carousel-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .piece-title {
+    font-size: 1.5rem;
+    color: var(--color-dark);
+  }
+
+  .clip-counter {
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+    font-weight: 400;
+    background: var(--color-light-gray);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: calc(var(--border-radius) / 2);
+  }
+
+  .current-clip {
+    color: var(--color-secondary);
+    font-weight: 600;
+  }
+
+  .carousel-subtitle {
+    color: var(--color-text-light);
+    font-style: italic;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .carousel-main {
+    min-height: 600px;
+  }
+
+  .video-section {
+    position: relative;
+    padding: var(--spacing-lg);
+  }
+
+  .carousel-nav {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    display: flex;
+    justify-content: space-between;
+    padding: 0 var(--spacing-md);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .nav-button {
+    pointer-events: all;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid var(--color-light-gray);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--color-dark);
+  }
+
+  .nav-button:hover:not(:disabled) {
+    background: var(--color-secondary);
+    color: var(--color-white);
+    transform: scale(1.1);
+  }
+
+  .nav-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .nav-button svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .video-players-container {
+    margin-bottom: var(--spacing-lg);
+    position: relative;
+  }
+
+  .video-player-wrapper {
+    transition: opacity 0.3s ease;
+  }
+
+  .video-player-wrapper.hidden {
+    display: none;
+  }
+
+  .video-player-wrapper.active {
+    display: block;
+  }
+
+  .video-container {
+    max-width: 100%;
+    margin: var(--spacing-lg) 0;
+    background: var(--color-bg-warm);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid var(--color-accent-teal);
+  }
+
+  .video-js {
+    display: block;
+    margin-inline: auto;
+    width: 100%;
+    max-width: 800px;
+    aspect-ratio: 16/9;
+    height: auto;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Hide control bar for CF Stream clips (boundary enforcement is imperfect) */
+  [data-is-mp4="false"] :global(.video-js .vjs-control-bar) {
+    display: none !important;
+  }
+
+  video {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .video-title {
+    margin-top: var(--spacing-md);
+    font-size: 0.95rem;
+    color: var(--color-text-light);
+    text-align: center;
+    font-style: italic;
+    font-family: var(--font-heading);
+  }
+
+  .carousel-thumbnails {
+    display: flex;
+    gap: var(--spacing-sm);
+    overflow-x: auto;
+    padding: var(--spacing-sm) 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-secondary) var(--color-light-gray);
+  }
+
+  .thumbnail-button {
+    position: relative;
+    border: 2px solid transparent;
+    border-radius: var(--border-radius);
+    background: none;
+    cursor: pointer;
+    transition: var(--transition);
+    flex-shrink: 0;
+    width: 80px;
+    height: 60px;
+    overflow: hidden;
+  }
+
+  .thumbnail-button.active {
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 2px rgba(131, 205, 192, 0.3);
+  }
+
+  .thumbnail-button img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .thumbnail-overlay {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+
+  /* Metadata Drawer - overlays the sidebar */
+  .metadata-drawer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 20%;
+    z-index: 200;
+    background: rgba(81, 81, 81, 0.95);
+    backdrop-filter: blur(8px);
+    border-top-right-radius: var(--border-radius);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 70vh;
+    overflow: hidden;
+  }
+
+  .metadata-drawer[data-visible="false"] {
+    transform: translateY(calc(100% - 60px));
+  }
+
+  .metadata-drawer[data-visible="true"] {
+    transform: translateY(0);
+  }
+
+  .drawer-handle {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .drawer-toggle {
+    background: none;
+    border: none;
+    color: var(--color-white);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 500;
+    width: 100%;
+    padding: var(--spacing-xs);
+    border-radius: calc(var(--border-radius) / 2);
+    transition: var(--transition);
+  }
+
+  .drawer-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .chevron-icon {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+  }
+
+  .metadata-drawer[data-visible="false"] .chevron-icon {
+    transform: rotate(180deg);
+  }
+
+  .handle-text {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .drawer-content {
+    padding: var(--spacing-lg);
+    overflow-y: auto;
+    max-height: calc(70vh - 60px);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .drawer-content::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .drawer-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .drawer-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+  }
+
+  /* Override metadata styles for drawer */
+  .metadata-drawer .clip-title {
+    color: var(--color-white);
+    font-size: 1.1rem;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .metadata-drawer .label {
+    color: var(--color-secondary);
+    font-size: 0.8rem;
+  }
+
+  .metadata-drawer .value {
+    color: var(--color-white);
+    font-size: 0.9rem;
+  }
+
+  .metadata-drawer .value.missing {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .metadata-drawer .missing-note,
+  .metadata-drawer .performers-list .value.missing {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .metadata-drawer .performer-tag {
+    background: rgba(131, 205, 192, 0.2);
+    color: var(--color-secondary);
+    border: 1px solid rgba(131, 205, 192, 0.3);
+  }
+
+  .metadata-drawer .video-info {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .metadata-drawer .video-title {
+    color: var(--color-white);
+  }
+
+  .metadata-drawer .video-description {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .metadata-drawer .video-details {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .clip-title {
+    color: var(--color-dark);
+    margin-bottom: var(--spacing-lg);
+    font-size: 1.25rem;
+  }
+
+  .metadata-grid {
+    display: grid;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .metadata-item {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--spacing-sm);
+    align-items: start;
+  }
+
+  .label {
+    font-family: var(--font-heading);
+    font-style: italic;
+    color: var(--color-dark);
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .value {
+    color: var(--color-text);
+    font-weight: 500;
+  }
+
+  .description {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .description .value {
+    margin-top: var(--spacing-xs);
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  .performers-section {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .performers-list {
+    margin-top: var(--spacing-xs);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+  }
+
+  .performer-tag {
+    background: var(--color-bg-soft);
+    color: var(--color-dark);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: calc(var(--border-radius) / 2);
+    font-size: 0.85rem;
+    border: 1px solid var(--color-light-gray);
+  }
+
+  .missing-note {
+    color: var(--color-text-light);
+    font-style: italic;
+    font-size: 0.85rem;
+  }
+
+  .value.missing {
+    color: var(--color-text-light);
+    font-style: italic;
+  }
+
+  .video-metadata {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--color-light-gray);
+  }
+
+  .video-metadata .label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .video-info {
+    background: var(--color-bg-cool);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--color-light-gray);
+  }
+
+  .video-title {
+    font-weight: 600;
+    color: var(--color-dark);
+    margin: 0 0 var(--spacing-xs) 0;
+    font-size: 0.9rem;
+  }
+
+  .video-description {
+    color: var(--color-text);
+    margin: 0 0 var(--spacing-xs) 0;
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .video-details {
+    color: var(--color-text-light);
+    margin: 0;
+    font-size: 0.8rem;
+  }
+
+  .empty-state {
+    padding: var(--spacing-xl);
+    text-align: center;
+    color: var(--color-text-light);
+  }
+
+  .empty-state h3 {
+    margin-bottom: var(--spacing-md);
+    color: var(--color-dark);
+  }
+
+  .debug-info {
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: var(--color-light-gray);
+    border-radius: var(--border-radius);
+    font-size: 0.8rem;
+  }
+
+  .debug-info summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-dark);
+  }
+
+  .debug-info pre {
+    margin: var(--spacing-xs) 0 0 0;
+    padding: var(--spacing-sm);
+    background: var(--color-white);
+    border-radius: calc(var(--border-radius) / 2);
+    overflow: auto;
+    max-height: 200px;
+    font-size: 0.7rem;
+  }
+
+  /* Responsive design */
+  @media (max-width: 1024px) {
+    .metadata-drawer {
+      width: 100%;
+      left: 0;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .carousel-title {
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+
+    .piece-title {
+      font-size: 1.25rem;
+    }
+
+    .video-section,
+    .metadata-panel {
+      padding: var(--spacing-md);
+    }
+
+    .metadata-item {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-xs);
+    }
+
+    .nav-button {
+      width: 40px;
+      height: 40px;
+    }
+
+    .nav-button svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+</style>
+
+<script>
+  import { initializeVideoJsPlayer } from '@/utils/videojs-player';
+
+  class ClipCarousel {
+    private container: HTMLElement;
+    private clips: any[];
+    private currentIndex: number = 0;
+    private players: Map<number, any> = new Map();
+
+    constructor(container: HTMLElement) {
+      this.container = container;
+      this.clips = JSON.parse(container.dataset.clips || '[]');
+      this.init();
+    }
+
+    async init() {
+      await this.initializeAllPlayers();
+      this.bindEvents();
+      this.bindDrawerEvents();
+      this.updateMetadata();
+      this.showCurrentVideo();
+
+      // Ensure initial clip is seeked to its start time
+      // (handles race condition where metadata loaded before event handler was attached)
+      this.seekToClipStart(this.currentIndex);
+    }
+
+    async initializeAllPlayers() {
+      const videoWrappers = this.container.querySelectorAll('.video-player-wrapper');
+
+      for (let i = 0; i < videoWrappers.length; i++) {
+        const wrapper = videoWrappers[i] as HTMLElement;
+        const videoElement = wrapper.querySelector('video');
+        if (!videoElement) continue;
+
+        const isMP4 = wrapper.dataset.isMp4 === 'true';
+
+        if (isMP4) {
+          // Native HTML5 player — no Video.js needed
+          this.players.set(i, {
+            play: () => videoElement.play(),
+            pause: () => videoElement.pause(),
+            paused: () => videoElement.paused,
+            currentTime: (t?: number) => { if (t !== undefined) videoElement.currentTime = t; return videoElement.currentTime; },
+            duration: () => videoElement.duration,
+          });
+        } else {
+          // Video.js player for CF Stream HLS
+          const playerId = videoElement.id;
+          const startTime = parseFloat(videoElement.dataset.startTime || '0');
+          const endTime = parseFloat(videoElement.dataset.endTime || '0');
+
+          try {
+            const player = await initializeVideoJsPlayer({
+              playerId,
+              startTime: !isNaN(startTime) ? startTime : undefined,
+              endTime: !isNaN(endTime) ? endTime : undefined,
+              autoLoopToStart: true,
+              remapTimeline: false,
+            });
+            this.players.set(i, player);
+          } catch (error) {
+            console.error('Failed to initialize player', playerId, error);
+          }
+        }
+      }
+    }
+
+    bindEvents() {
+      // Navigation buttons
+      const prevBtn = this.container.querySelector('.prev-button');
+      const nextBtn = this.container.querySelector('.next-button');
+      
+      prevBtn?.addEventListener('click', () => this.previousClip());
+      nextBtn?.addEventListener('click', () => this.nextClip());
+
+      // Thumbnail buttons
+      const thumbnails = this.container.querySelectorAll('.thumbnail-button');
+      thumbnails.forEach((btn, index) => {
+        btn.addEventListener('click', () => this.goToClip(index));
+      });
+
+      // Keyboard navigation
+      document.addEventListener('keydown', (e) => {
+        if (e.target.closest('.clip-carousel-container') === this.container) {
+          if (e.key === 'ArrowLeft') this.previousClip();
+          if (e.key === 'ArrowRight') this.nextClip();
+        }
+      });
+    }
+
+    bindDrawerEvents() {
+      const drawer = document.querySelector('.metadata-drawer');
+      const drawerToggle = drawer?.querySelector('.drawer-toggle');
+      
+      if (drawerToggle) {
+        drawerToggle.addEventListener('click', () => {
+          const currentState = drawer.getAttribute('data-visible');
+          const newState = currentState === 'true' ? 'false' : 'true';
+          drawer.setAttribute('data-visible', newState);
+        });
+      }
+    }
+
+    previousClip() {
+      if (this.currentIndex > 0) {
+        this.goToClip(this.currentIndex - 1);
+      }
+    }
+
+    nextClip() {
+      if (this.currentIndex < this.clips.length - 1) {
+        this.goToClip(this.currentIndex + 1);
+      }
+    }
+
+    goToClip(index: number) {
+      // Pause the current video
+      const currentPlayer = this.players.get(this.currentIndex);
+      if (currentPlayer) {
+        currentPlayer.pause();
+      }
+
+      this.currentIndex = index;
+      this.showCurrentVideo();
+
+      // Seek the new player to its clip start time
+      this.seekToClipStart(index);
+
+      this.animateMetadataUpdate(() => {
+        this.updateMetadata();
+      });
+      this.updateThumbnails();
+      this.updateNavigation();
+      this.updateCounter();
+    }
+
+    seekToClipStart(index: number) {
+      const player = this.players.get(index);
+      const clip = this.clips[index];
+      if (player && clip) {
+        // Extracted clips are standalone — always start at 0
+        if (clip.is_extracted) {
+          player.currentTime(0);
+          return;
+        }
+        const startTime = parseFloat(clip.start_time_seconds);
+        if (!isNaN(startTime) && startTime > 0) {
+          player.currentTime(startTime);
+        }
+      }
+    }
+
+    showCurrentVideo() {
+      const videoWrappers = this.container.querySelectorAll('.video-player-wrapper');
+      videoWrappers.forEach((wrapper, index) => {
+        if (index === this.currentIndex) {
+          wrapper.classList.remove('hidden');
+          wrapper.classList.add('active');
+        } else {
+          wrapper.classList.add('hidden');
+          wrapper.classList.remove('active');
+        }
+      });
+    }
+
+    animateMetadataUpdate(callback: () => void) {
+      const drawer = document.querySelector('.metadata-drawer');
+      const content = drawer?.querySelector('.drawer-content') as HTMLElement | null;
+
+      if (content) {
+        // Slide down slightly
+        content.style.transform = 'translateY(10px)';
+        content.style.opacity = '0.7';
+
+        setTimeout(() => {
+          callback();
+          // Slide back up
+          content.style.transform = 'translateY(0)';
+          content.style.opacity = '1';
+        }, 150);
+      } else {
+        callback();
+      }
+    }
+
+    updateMetadata() {
+      const clip = this.clips[this.currentIndex];
+      
+      // Update basic fields
+      this.updateField('title', clip.title);
+      this.updateField('duration', `${clip.duration_formatted}s`);
+      this.updateField('created', new Date(clip.created_at).toLocaleDateString());
+      
+      // Update description (handle missing)
+      const descriptionEl = this.container.querySelector('[data-field="description"]');
+      if (descriptionEl) {
+        if (clip.description) {
+          descriptionEl.textContent = clip.description;
+          descriptionEl.classList.remove('missing');
+        } else {
+          descriptionEl.textContent = 'No description provided';
+          descriptionEl.classList.add('missing');
+        }
+      }
+      
+      // Update performance-related fields
+      const performanceEl = this.container.querySelector('[data-field="performance"]');
+      if (performanceEl) {
+        if (clip.performance) {
+          performanceEl.textContent = clip.performance.title;
+          performanceEl.classList.remove('missing');
+          
+          // Update date and venue if they exist
+          if (clip.performance.date) {
+            this.updateField('date', new Date(clip.performance.date).toLocaleDateString());
+          }
+          if (clip.performance.venue) {
+            this.updateField('venue', clip.performance.venue.name);
+          }
+        } else {
+          performanceEl.textContent = 'Not specified';
+          performanceEl.classList.add('missing');
+        }
+      }
+
+      // Update verification date
+      if (clip.verification_date) {
+        this.updateField('verified', new Date(clip.verification_date).toLocaleDateString());
+      }
+
+      // Update performers
+      const performersContainer = this.container.querySelector('[data-field="performers"]');
+      if (performersContainer) {
+        const hasPerformers = clip.clip_performers && clip.clip_performers.length > 0;
+
+        if (hasPerformers) {
+          const performerTags = clip.clip_performers.map(p => `<span class="performer-tag">${p.person?.name}</span>`);
+          performersContainer.innerHTML = performerTags.join('');
+        } else {
+          performersContainer.innerHTML = '<span class="value missing">No performers listed</span>';
+        }
+      }
+
+      // Update video metadata
+      const videoTitleEl = this.container.querySelector('.video-title');
+      const videoDescEl = this.container.querySelector('.video-description');
+      const videoDetailsEl = this.container.querySelector('.video-details');
+      
+      if (videoTitleEl) videoTitleEl.textContent = clip.video?.title || 'Unknown';
+      if (videoDescEl && clip.video?.description) {
+        videoDescEl.textContent = clip.video.description;
+        videoDescEl.style.display = 'block';
+      } else if (videoDescEl) {
+        videoDescEl.style.display = 'none';
+      }
+      if (videoDetailsEl) {
+        videoDetailsEl.textContent = `${clip.video?.duration_formatted || 'Unknown'} • Uploaded ${new Date(clip.video?.upload_date).toLocaleDateString()}`;
+      }
+    }
+
+    updateField(fieldName, value) {
+      const element = this.container.querySelector(`[data-field="${fieldName}"]`);
+      if (element && value) {
+        element.textContent = value;
+      }
+    }
+
+    updateThumbnails() {
+      const thumbnails = this.container.querySelectorAll('.thumbnail-button');
+      thumbnails.forEach((btn, index) => {
+        btn.classList.toggle('active', index === this.currentIndex);
+      });
+    }
+
+    updateNavigation() {
+      const prevBtn = this.container.querySelector('.prev-button');
+      const nextBtn = this.container.querySelector('.next-button');
+      
+      if (prevBtn) prevBtn.disabled = this.currentIndex === 0;
+      if (nextBtn) nextBtn.disabled = this.currentIndex === this.clips.length - 1;
+    }
+
+    updateCounter() {
+      const currentClipElement = this.container.querySelector('.current-clip');
+      if (currentClipElement) {
+        currentClipElement.textContent = this.currentIndex + 1;
+      }
+    }
+  }
+
+  // Initialize carousels when DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    const carousels = document.querySelectorAll('.clip-carousel-container');
+    carousels.forEach(container => new ClipCarousel(container));
+  });
+</script>

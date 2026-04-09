@@ -1,0 +1,304 @@
+---
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="Dance Visions NY - Bringing Isadora Duncan’s artistic legacy into the present" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title} | Dance Visions NY Video Archive</title>
+	</head>
+	<body>
+		<div class="site-layout">
+			<aside class="sidebar">
+				<div class="sidebar-content">
+					<div class="logo">
+						<a href="/">
+							<h1 class="site-title">Dance Visions NY</h1>
+							<p class="site-subtitle">Video Archive</p>
+						</a>
+					</div>
+					
+					<nav class="sidebar-nav">
+						<ul class="nav-list">
+							<li><a href="/" class="nav-link">Home</a></li>
+							<li><a href="/performances" class="nav-link">Performances</a></li>
+							<li><a href="/performers" class="nav-link">Performers</a></li>
+							<li><a href="/dance-works" class="nav-link">Dance Works</a></li>
+							<li><a href="/clips" class="nav-link">Clips</a></li>
+							<li><a href="/venues" class="nav-link">Venues</a></li>
+						</ul>
+					</nav>
+					
+					<div class="sidebar-footer">
+                                             
+					     	<p class="copyright">&copy; 2025 Dance Visions NY</p>
+                                                <p class="copyright" style="text-align:justify">
+                                                This work is supported by Long Island Grants for the Arts through funds provided by the office of the Governor and the New York State Legislature, and administered by The Huntington Arts Council.
+                                                </p>
+					</div>
+				</div>
+			</aside>
+			
+			<div class="main-wrapper">
+				<main class="main-content">
+					<slot />
+				</main>
+			</div>
+		</div>
+		
+		<!-- Mobile menu toggle -->
+		<button class="mobile-menu-toggle" aria-label="Toggle navigation">
+			<span></span>
+			<span></span>
+			<span></span>
+		</button>
+	</body>
+</html>
+
+<style is:global>
+	@import '../styles/global.css';
+</style>
+
+<style>
+	.site-layout {
+		display: flex;
+		min-height: 100vh;
+	}
+	
+	.sidebar {
+		width: 20%;
+		background: var(--color-bg-warm);
+		border-right: 3px solid var(--color-light-gray);
+		position: fixed;
+		top: 0;
+		left: 0;
+		height: 100vh;
+		overflow-y: auto;
+		z-index: 100;
+		box-shadow: 3px 0 15px rgba(0, 0, 0, 0.1);
+	}
+	
+	.sidebar-content {
+		padding: var(--spacing-xl) var(--spacing-lg);
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+	}
+	
+	.logo {
+		margin-bottom: var(--spacing-xl);
+		text-align: center;
+		padding-bottom: var(--spacing-lg);
+		border-bottom: 2px solid var(--color-light-gray);
+	}
+	
+	.logo a {
+		text-decoration: none;
+		color: inherit;
+		display: block;
+	}
+	
+	.site-title {
+		font-size: 1.75rem;
+		font-weight: 700;
+		margin: 0;
+		color: var(--color-dark);
+		font-style: italic;
+		line-height: 1.2;
+	}
+	
+	.site-subtitle {
+		font-size: 0.8rem;
+		margin: var(--spacing-xs) 0 0 0;
+		color: var(--color-text-light);
+		font-weight: 300;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+	}
+	
+	.sidebar-nav {
+		flex: 1;
+	}
+	
+	.nav-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+		margin: 0;
+		padding: 0;
+	}
+	
+	.nav-link {
+		font-weight: 500;
+		font-size: 1rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: var(--spacing-md) var(--spacing-lg);
+		border-radius: var(--border-radius);
+		transition: var(--transition);
+		display: block;
+		margin: 0 calc(-1 * var(--spacing-lg));
+		border-left: 4px solid transparent;
+	}
+	
+	.nav-link:hover {
+		background: var(--color-bg-soft);
+		color: var(--color-secondary);
+		border-left-color: var(--color-secondary);
+		transform: translateX(4px);
+	}
+	
+	.sidebar-footer {
+		padding-top: var(--spacing-lg);
+		border-top: 2px solid var(--color-light-gray);
+		text-align: center;
+		margin-top: auto;
+	}
+	
+	.copyright {
+		font-size: 0.8rem;
+		color: var(--color-text-light);
+		margin: 0 0 var(--spacing-xs) 0;
+		font-weight: 500;
+	}
+	
+	.tagline {
+		font-size: 0.75rem;
+		color: var(--color-text-light);
+		margin: 0;
+		font-style: italic;
+		font-family: var(--font-heading);
+	}
+	
+	.main-wrapper {
+		width: 80%;
+		margin-left: 20%;
+		min-height: 100vh;
+	}
+	
+	.main-content {
+		padding: var(--spacing-xl);
+		max-width: none;
+	}
+	
+	.mobile-menu-toggle {
+		display: none;
+		position: fixed;
+		top: var(--spacing-md);
+		left: var(--spacing-md);
+		z-index: 200;
+		background: var(--color-bg-warm);
+		border: 2px solid var(--color-light-gray);
+		border-radius: var(--border-radius);
+		padding: var(--spacing-xs);
+		width: 40px;
+		height: 40px;
+		flex-direction: column;
+		justify-content: center;
+		gap: 4px;
+		cursor: pointer;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+	}
+	
+	.mobile-menu-toggle span {
+		display: block;
+		height: 2px;
+		width: 20px;
+		background: var(--color-dark);
+		transition: var(--transition);
+	}
+	
+	.mobile-menu-toggle:hover span {
+		background: var(--color-secondary);
+	}
+	
+	/* Responsive design */
+	@media (max-width: 768px) {
+		.sidebar {
+			width: 280px;
+			transform: translateX(-100%);
+			transition: transform 0.3s ease;
+		}
+		
+		.sidebar.open {
+			transform: translateX(0);
+		}
+		
+		.main-wrapper {
+			width: 100%;
+			margin-left: 0;
+		}
+		
+		.main-content {
+			padding: var(--spacing-lg);
+			padding-top: 80px; /* Account for mobile menu button */
+		}
+		
+		.mobile-menu-toggle {
+			display: flex;
+		}
+		
+		.site-title {
+			font-size: 1.5rem;
+		}
+		
+		.nav-link {
+			padding: var(--spacing-md);
+			margin: 0;
+		}
+	}
+	
+	@media (max-width: 480px) {
+		.main-content {
+			padding: var(--spacing-md);
+			padding-top: 80px;
+		}
+		
+		.sidebar {
+			width: 100%;
+		}
+		
+		.sidebar-content {
+			padding: var(--spacing-lg) var(--spacing-md);
+		}
+	}
+</style>
+
+<script>
+	// Mobile menu toggle functionality
+	document.addEventListener('DOMContentLoaded', () => {
+		const mobileToggle = document.querySelector('.mobile-menu-toggle');
+		const sidebar = document.querySelector('.sidebar');
+		
+		if (mobileToggle && sidebar) {
+			mobileToggle.addEventListener('click', () => {
+				sidebar.classList.toggle('open');
+			});
+			
+			// Close sidebar when clicking outside on mobile
+			document.addEventListener('click', (e) => {
+				if (window.innerWidth <= 768) {
+					if (!sidebar.contains(e.target) && !mobileToggle.contains(e.target)) {
+						sidebar.classList.remove('open');
+					}
+				}
+			});
+			
+			// Close sidebar on window resize to desktop
+			window.addEventListener('resize', () => {
+				if (window.innerWidth > 768) {
+					sidebar.classList.remove('open');
+				}
+			});
+		}
+	});
+</script>

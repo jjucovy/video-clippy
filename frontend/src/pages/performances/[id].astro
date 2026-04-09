@@ -1,0 +1,23 @@
+---
+export const prerender = false;
+import Layout from '@/layouts/Layout.astro';
+import CustomFields from '@/components/CustomFields.astro';
+import { get, list } from '@/lib/api';
+
+const { id } = Astro.params;
+const performance = await get('performances', id);
+const clips = await list(`clips?performance=${id}`);
+---
+
+<Layout title={performance.title}>
+	<h1>{performance.title}</h1>
+	<CustomFields customFields={performance.custom_fields} />
+	<h2>Clips</h2>
+	<ul>
+		{clips.map((clip) => (
+			<li>
+				<a href={`/clips/${clip.id}`}>{clip.title}</a>
+			</li>
+		))}
+	</ul>
+</Layout>

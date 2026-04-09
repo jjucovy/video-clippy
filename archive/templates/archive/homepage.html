@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dance Archive Video CMS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .workflow-section {
+            margin-bottom: 40px;
+        }
+
+        .workflow-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .workflow-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .step {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .step:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+
+        .step h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .step p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background 0.3s, transform 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .recent-videos {
+            margin-top: 30px;
+        }
+
+        .video-list {
+            list-style: none;
+        }
+
+        .video-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .video-item:hover {
+            background: #e9ecef;
+        }
+
+        .video-info {
+            flex: 1;
+        }
+
+        .video-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .video-status {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-processing {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-pending {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .quick-actions {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+
+        .quick-actions h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .alert {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-color: #ffeeba;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Dance Archive Video CMS</h1>
+            <p class="subtitle">Digitize, Process, and Annotate Dance Performances</p>
+        </header>
+
+        <div class="main-content">
+            <div class="workflow-section">
+                <h2>How It Works</h2>
+
+                <div class="workflow-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h3>Upload Video</h3>
+                        <p>Upload your digitized dance archive video to Cloudflare Stream for reliable hosting and streaming.</p>
+                        <a href="/admin/archive/video/upload/" class="btn">Upload Video</a>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h3>Wait for Processing</h3>
+                        <p>Cloudflare processes your video (usually 1-3 minutes). The system will auto-refresh until ready.</p>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h3>Create Clips</h3>
+                        <p>Once ready, use the video clipper to segment performances and add rich metadata (dancers, pieces, roles).</p>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <h3>Share & Archive</h3>
+                        <p>Access clips via API, embed them, or use the admin interface to manage your growing archive.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">{{ processing_videos }}</div>
+                    <div class="stat-label">Processing</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-number">{{ ready_videos }}</div>
+                    <div class="stat-label">Ready</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-number">{{ total_clips }}</div>
+                    <div class="stat-label">Total Clips</div>
+                </div>
+            </div>
+
+            <div class="quick-actions">
+                <h3>Quick Actions</h3>
+                <div class="action-buttons">
+                    <a href="/admin/archive/video/upload/" class="btn">Upload New Video</a>
+                    <a href="/admin/archive/video/" class="btn btn-secondary">View All Videos</a>
+                    <a href="/admin/archive/clip/" class="btn btn-secondary">Browse Clips</a>
+                    <a href="/admin/" class="btn btn-secondary">Admin Dashboard</a>
+                </div>
+            </div>
+
+            {% if recent_videos %}
+            <div class="recent-videos">
+                <h2>Recent Videos</h2>
+                <ul class="video-list">
+                    {% for video in recent_videos %}
+                    <li class="video-item">
+                        <div class="video-info">
+                            <div class="video-title">{{ video.title }}</div>
+                            <div class="video-status">
+                                Uploaded: {{ video.upload_date|date:"M d, Y H:i" }}
+                                <span class="status-badge status-{{ video.status }}">{{ video.status|upper }}</span>
+                            </div>
+                        </div>
+                        <div>
+                            {% if video.status == 'ready' %}
+                                <a href="/admin/archive/video/{{ video.pk }}/clipper/" class="btn">Create Clips</a>
+                            {% else %}
+                                <a href="/admin/archive/video/{{ video.pk }}/change/" class="btn btn-secondary">View</a>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if processing_videos > 0 %}
+            <div class="alert alert-warning">
+                <strong>Note:</strong> You have {{ processing_videos }} video(s) currently processing.
+                Visit the <a href="/admin/archive/video/">video list</a> to check their status.
+                Videos typically finish processing within 1-3 minutes.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
