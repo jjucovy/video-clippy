@@ -3,15 +3,151 @@ import Layout from '@/layouts/Layout.astro';
 import { list } from '@/lib/api';
 
 const venues = await list('venues');
+
+venues.sort((a: any, b: any) => a.name.localeCompare(b.name));
 ---
 
 <Layout title="Venues">
-	<h1>Venues</h1>
-	<ul>
-		{venues.map((venue) => (
-			<li>
-				<a href={`/venues/${venue.id}`}>{venue.name}</a>
-			</li>
-		))}
-	</ul>
+	<div class="page-header">
+		<h1>Venues</h1>
+		<p class="page-subtitle">Theaters, studios, and performance spaces</p>
+	</div>
+
+	{venues.length === 0 ? (
+		<div class="empty-state">
+			<p>No venues listed yet. Check back soon.</p>
+		</div>
+	) : (
+		<div class="venues-grid">
+			{venues.map((venue: any) => (
+				<a href={`/venues/${venue.id}`} class="venue-card">
+					<div class="venue-icon">
+						<svg viewBox="0 0 24 24" fill="currentColor">
+							<path fill-rule="evenodd" d="M4 4a2 2 0 012-2h12a2 2 0 012 2v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 0v14h3v-3a1 1 0 011-1h4a1 1 0 011 1v3h3V4H6zm5 14v-2h2v2h-2zM7 7h2v2H7V7zm0 4h2v2H7v-2zm4-4h2v2h-2V7zm0 4h2v2h-2v-2z" clip-rule="evenodd"/>
+						</svg>
+					</div>
+					<div class="venue-info">
+						<h3 class="venue-name">{venue.name}</h3>
+						{(venue.city || venue.address) && (
+							<p class="venue-location">
+								{venue.city || venue.address}
+							</p>
+						)}
+					</div>
+					<span class="venue-arrow">→</span>
+				</a>
+			))}
+		</div>
+	)}
 </Layout>
+
+<style>
+	.page-header {
+		margin-bottom: var(--spacing-xl);
+		padding-bottom: var(--spacing-lg);
+		border-bottom: 1px solid var(--color-light-gray);
+	}
+
+	.page-header h1 {
+		margin-bottom: var(--spacing-xs);
+	}
+
+	.page-subtitle {
+		color: var(--color-text-light);
+		font-size: 1rem;
+		font-style: italic;
+		margin: 0;
+	}
+
+	.venues-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: var(--spacing-md);
+	}
+
+	.venue-card {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-md);
+		padding: var(--spacing-md) var(--spacing-lg);
+		background: var(--color-white);
+		border-radius: var(--border-radius);
+		text-decoration: none;
+		color: inherit;
+		box-shadow: var(--shadow-card);
+		transition: var(--transition);
+		border: 1px solid transparent;
+		border-left: 3px solid var(--color-accent-lavender);
+	}
+
+	.venue-card:hover {
+		box-shadow: var(--shadow-card-hover);
+		border-color: rgba(149, 131, 204, 0.4);
+		border-left-color: var(--color-accent-lavender);
+		transform: translateY(-2px);
+		color: inherit;
+	}
+
+	.venue-card:hover .venue-arrow {
+		color: var(--color-accent-lavender);
+		transform: translateX(4px);
+	}
+
+	.venue-icon {
+		width: 42px;
+		min-width: 42px;
+		height: 42px;
+		border-radius: var(--border-radius-sm);
+		background: rgba(149, 131, 204, 0.1);
+		color: var(--color-accent-lavender);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.venue-icon svg {
+		width: 22px;
+		height: 22px;
+	}
+
+	.venue-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.venue-name {
+		font-size: 1rem;
+		margin: 0 0 0.2rem;
+		color: var(--color-dark);
+		font-style: italic;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.venue-location {
+		font-size: 0.82rem;
+		color: var(--color-text-light);
+		margin: 0;
+	}
+
+	.venue-arrow {
+		font-size: 1rem;
+		color: var(--color-light-gray);
+		transition: var(--transition);
+		flex-shrink: 0;
+	}
+
+	.empty-state {
+		text-align: center;
+		padding: var(--spacing-xl);
+		color: var(--color-text-light);
+		font-style: italic;
+	}
+
+	@media (max-width: 600px) {
+		.venues-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

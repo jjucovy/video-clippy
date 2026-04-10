@@ -3,15 +3,169 @@ import Layout from '@/layouts/Layout.astro';
 import { list } from '@/lib/api';
 
 const performers = await list('people');
+
+// Sort alphabetically by name
+performers.sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+// Assign a stable accent color per performer based on name initial
+const accentColors = [
+	'#83CDC0', // teal
+	'#9583cc', // lavender
+	'#5762b4', // purple
+	'#83abcc', // blue
+];
+
+function getAccentColor(name: string): string {
+	const idx = name.charCodeAt(0) % accentColors.length;
+	return accentColors[idx];
+}
+
+function getInitials(name: string): string {
+	return name
+		.split(' ')
+		.slice(0, 2)
+		.map(n => n[0])
+		.join('')
+		.toUpperCase();
+}
 ---
 
 <Layout title="Performers">
-	<h1>Performers</h1>
-	<ul>
-		{performers.map((performer) => (
-			<li>
-				<a href={`/performers/${performer.id}`}>{performer.name}</a>
-			</li>
-		))}
-	</ul>
+	<div class="page-header">
+		<h1>Performers</h1>
+		<p class="page-subtitle">Dancers, choreographers, and artists of Dance Visions NY</p>
+	</div>
+
+	{performers.length === 0 ? (
+		<div class="empty-state">
+			<p>No performers listed yet. Check back soon.</p>
+		</div>
+	) : (
+		<div class="performers-grid">
+			{performers.map((performer: any) => {
+				const initials = getInitials(performer.name);
+				const accent = getAccentColor(performer.name);
+				return (
+					<a href={`/performers/${performer.id}`} class="performer-card">
+						<div class="performer-avatar" style={`background: ${accent}22; color: ${accent}; border-color: ${accent}33;`}>
+							{initials}
+						</div>
+						<div class="performer-info">
+							<h3 class="performer-name">{performer.name}</h3>
+							{performer.bio && <p class="performer-bio">{performer.bio.slice(0, 80)}{performer.bio.length > 80 ? '…' : ''}</p>}
+						</div>
+						<span class="performer-arrow">→</span>
+					</a>
+				);
+			})}
+		</div>
+	)}
 </Layout>
+
+<style>
+	.page-header {
+		margin-bottom: var(--spacing-xl);
+		padding-bottom: var(--spacing-lg);
+		border-bottom: 1px solid var(--color-light-gray);
+	}
+
+	.page-header h1 {
+		margin-bottom: var(--spacing-xs);
+	}
+
+	.page-subtitle {
+		color: var(--color-text-light);
+		font-size: 1rem;
+		font-style: italic;
+		margin: 0;
+	}
+
+	.performers-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: var(--spacing-md);
+	}
+
+	.performer-card {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-md);
+		padding: var(--spacing-md) var(--spacing-lg);
+		background: var(--color-white);
+		border-radius: var(--border-radius);
+		text-decoration: none;
+		color: inherit;
+		box-shadow: var(--shadow-card);
+		transition: var(--transition);
+		border: 1px solid transparent;
+	}
+
+	.performer-card:hover {
+		box-shadow: var(--shadow-card-hover);
+		border-color: rgba(131, 205, 192, 0.3);
+		transform: translateY(-2px);
+		color: inherit;
+	}
+
+	.performer-card:hover .performer-arrow {
+		color: var(--color-secondary);
+		transform: translateX(4px);
+	}
+
+	.performer-avatar {
+		width: 48px;
+		min-width: 48px;
+		height: 48px;
+		border-radius: 50%;
+		border: 2px solid;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-family: var(--font-body);
+		font-size: 0.85rem;
+		font-weight: 700;
+		letter-spacing: 0.03em;
+	}
+
+	.performer-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.performer-name {
+		font-size: 1rem;
+		margin: 0 0 0.2rem;
+		color: var(--color-dark);
+		font-style: italic;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.performer-bio {
+		font-size: 0.8rem;
+		color: var(--color-text-light);
+		margin: 0;
+		line-height: 1.4;
+	}
+
+	.performer-arrow {
+		font-size: 1rem;
+		color: var(--color-light-gray);
+		transition: var(--transition);
+		flex-shrink: 0;
+	}
+
+	.empty-state {
+		text-align: center;
+		padding: var(--spacing-xl);
+		color: var(--color-text-light);
+		font-style: italic;
+	}
+
+	@media (max-width: 600px) {
+		.performers-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

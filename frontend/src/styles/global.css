@@ -9,30 +9,48 @@
     --color-light-gray: #ededed;
     --color-white: #ffffff;
     --color-text: #333333;
-    --color-text-light: #666666;
-    
-    /* New accent colors */
+    --color-text-light: #777777;
+
+    /* Accent colors */
     --color-accent-purple: #5762b4;
     --color-accent-teal: #83cdc0;
     --color-accent-lavender: #9583cc;
     --color-accent-blue: #83abcc;
-    
+
     /* Subtle background variations */
     --color-bg-warm: #FDFCFB;
     --color-bg-cool: #FBFCFD;
-    --color-bg-soft: #F9F9F8;
-    
+    --color-bg-soft: #F4F0EC;
+
+    /* Dark sidebar theme */
+    --color-sidebar-bg: #1a1825;
+    --color-sidebar-text: rgba(232, 224, 216, 0.8);
+    --color-sidebar-text-bright: #e8e0d8;
+    --color-sidebar-border: rgba(255, 255, 255, 0.06);
+    --color-sidebar-hover: rgba(131, 205, 192, 0.12);
+    --color-sidebar-active: rgba(131, 205, 192, 0.18);
+    --color-sidebar-accent: #83CDC0;
+
+    /* Shadow scale */
+    --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.09);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.13);
+    --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.07);
+    --shadow-card-hover: 0 10px 30px rgba(0, 0, 0, 0.13);
+
     --font-heading: 'Merriweather', serif;
     --font-body: 'Josefin Sans', sans-serif;
-    
+
     --spacing-xs: 0.5rem;
     --spacing-sm: 1rem;
     --spacing-md: 1.5rem;
     --spacing-lg: 2rem;
     --spacing-xl: 3rem;
-    
-    --border-radius: 8px;
-    --transition: all 0.3s ease;
+
+    --border-radius: 10px;
+    --border-radius-sm: 6px;
+    --border-radius-lg: 16px;
+    --transition: all 0.25s ease;
 }
 
 /* Reset and base styles */
