@@ -1,38 +1,45 @@
-const API_URL = (import.meta.env.PUBLIC_API_URL || 'http://localhost:9999/api').replace(/\/$/, '');
+const API_URL = (import.meta.env.PUBLIC_API_URL || '').replace(/\/$/, '');
 
-export async function list(resource: string) {
-    const cleanResource = resource.replace(/\/$/, ''); // Remove trailing slash
-    const separator = cleanResource.includes('?') ? '&' : '?';
-    const url = `${API_URL}/${cleanResource}${separator}format=json`;
-    console.log('Fetching:', url);
-    const response = await fetch(url);
-    console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-    
-    const text = await response.text();
-    console.log('Response text (first 200 chars):', text.substring(0, 200));
-    
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${text}`);
-    }
-    
-    const data = JSON.parse(text);
-    return data.results;
+if (!API_URL) {
+    console.warn('[api] PUBLIC_API_URL is not set — API calls will fail. Set it in your Vercel environment variables.');
 }
 
-export async function get(resource: string, id: string) {
-    const url = `${API_URL}/${resource}/${id}/?format=json`;
-    console.log('Fetching:', url);
-    const response = await fetch(url);
-    console.log('Response status:', response.status);
-    
-    const text = await response.text();
-    console.log('Response text (first 200 chars):', text.substring(0, 200));
-    
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${text}`);
+export async function list(resource: string): Promise<any[]> {
+    if (!API_URL) return [];
+
+    const cleanResource = resource.replace(/\/$/, '');
+    const separator = cleanResource.includes('?') ? '&' : '?';
+    const url = `${API_URL}/${cleanResource}${separator}format=json`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.error(`[api] list(${resource}) failed: HTTP ${response.status}`);
+            return [];
+        }
+        const data = await response.json();
+        // DRF returns { results: [...] } for paginated endpoints
+        return Array.isArray(data) ? data : (data.results ?? []);
+    } catch (err) {
+        console.error(`[api] list(${resource}) error:`, err);
+        return [];
     }
-    
-    const data = JSON.parse(text);
-    return data;
+}
+
+export async function get(resource: string, id: string): Promise<any | null> {
+    if (!API_URL) return null;
+
+    const url = `${API_URL}/${resource}/${id}/?format=json`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.error(`[api] get(${resource}, ${id}) failed: HTTP ${response.status}`);
+            return null;
+        }
+        return await response.json();
+    } catch (err) {
+        console.error(`[api] get(${resource}, ${id}) error:`, err);
+        return null;
+    }
 }
