@@ -14,6 +14,12 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-producti
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
+# Render.com sets RENDER_EXTERNAL_HOSTNAME to the service's public hostname.
+# Add it automatically so we never need to hard-code the random subdomain.
+_render_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if _render_hostname and _render_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_render_hostname)
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
