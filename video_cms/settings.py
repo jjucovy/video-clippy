@@ -20,6 +20,14 @@ _render_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if _render_hostname and _render_hostname not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_render_hostname)
 
+# CSRF trusted origins — required by Django 4.0+ for any non-localhost HTTPS request.
+# Without this the admin login (and any form POST) returns 403.
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
+if _render_hostname:
+    _render_origin = f'https://{_render_hostname}'
+    if _render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_render_origin)
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
