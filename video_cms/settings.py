@@ -28,6 +28,11 @@ if _render_hostname:
     if _render_origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(_render_origin)
 
+# Render terminates SSL at the edge and forwards requests over HTTP internally.
+# This tells Django to trust the X-Forwarded-Proto header so it knows the
+# original request was HTTPS (needed for CSRF, secure cookies, etc.).
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
