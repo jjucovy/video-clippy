@@ -3,15 +3,205 @@ import Layout from '@/layouts/Layout.astro';
 import { list } from '@/lib/api';
 
 const performances = await list('performances');
+
+// Sort by date descending (most recent first), nulls last
+performances.sort((a: any, b: any) => {
+	if (!a.date && !b.date) return 0;
+	if (!a.date) return 1;
+	if (!b.date) return -1;
+	return new Date(b.date).getTime() - new Date(a.date).getTime();
+});
 ---
 
 <Layout title="Performances">
-	<h1>Performances</h1>
-	<ul>
-		{performances.map((performance) => (
-			<li>
-				<a href={`/performances/${performance.id}`}>{performance.title}</a>
-			</li>
-		))}
-	</ul>
+	<div class="page-header">
+		<h1>Performances</h1>
+		<p class="page-subtitle">A record of shows and events across the company's history</p>
+	</div>
+
+	{performances.length === 0 ? (
+		<div class="empty-state">
+			<p>No performances on record yet. Check back soon.</p>
+		</div>
+	) : (
+		<div class="performances-grid">
+			{performances.map((perf: any) => {
+				const dateStr = perf.date
+					? new Date(perf.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+					: null;
+				return (
+					<a href={`/performances/${perf.id}`} class="perf-card">
+						<div class="perf-card-inner">
+							<div class="perf-date-badge">
+								{perf.date ? (
+									<>
+										<span class="badge-month">{new Date(perf.date).toLocaleDateString('en-US', { month: 'short' })}</span>
+										<span class="badge-year">{new Date(perf.date).getFullYear()}</span>
+									</>
+								) : (
+									<span class="badge-unknown">—</span>
+								)}
+							</div>
+							<div class="perf-info">
+								<h3 class="perf-title">{perf.title}</h3>
+								{perf.date && <p class="perf-date">{dateStr}</p>}
+								{perf.venue && <p class="perf-venue">{perf.venue.name}{perf.venue.city ? `, ${perf.venue.city}` : ''}</p>}
+								{perf.company && <p class="perf-company">{perf.company.name}</p>}
+							</div>
+							<span class="perf-arrow">→</span>
+						</div>
+					</a>
+				);
+			})}
+		</div>
+	)}
 </Layout>
+
+<style>
+	.page-header {
+		margin-bottom: var(--spacing-xl);
+		padding-bottom: var(--spacing-lg);
+		border-bottom: 1px solid var(--color-light-gray);
+	}
+
+	.page-header h1 {
+		margin-bottom: var(--spacing-xs);
+	}
+
+	.page-subtitle {
+		color: var(--color-text-light);
+		font-size: 1rem;
+		font-style: italic;
+		margin: 0;
+	}
+
+	.performances-grid {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+
+	.perf-card {
+		display: block;
+		text-decoration: none;
+		color: inherit;
+		border-radius: var(--border-radius);
+		background: var(--color-white);
+		box-shadow: var(--shadow-card);
+		transition: var(--transition);
+		border: 1px solid transparent;
+		overflow: hidden;
+	}
+
+	.perf-card:hover {
+		box-shadow: var(--shadow-card-hover);
+		border-color: rgba(131, 205, 192, 0.3);
+		transform: translateX(4px);
+		color: inherit;
+	}
+
+	.perf-card:hover .perf-arrow {
+		color: var(--color-secondary);
+		transform: translateX(4px);
+	}
+
+	.perf-card-inner {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-lg);
+		padding: var(--spacing-md) var(--spacing-lg);
+	}
+
+	.perf-date-badge {
+		width: 52px;
+		min-width: 52px;
+		height: 52px;
+		border-radius: var(--border-radius-sm);
+		background: var(--color-sidebar-bg);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		color: var(--color-sidebar-text-bright);
+	}
+
+	.badge-month {
+		font-size: 0.65rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: var(--color-sidebar-accent);
+		line-height: 1;
+	}
+
+	.badge-year {
+		font-size: 1rem;
+		font-weight: 700;
+		line-height: 1.2;
+	}
+
+	.badge-unknown {
+		font-size: 1.25rem;
+		color: rgba(232, 224, 216, 0.4);
+	}
+
+	.perf-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.perf-title {
+		font-size: 1.05rem;
+		margin: 0 0 0.2rem;
+		color: var(--color-dark);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		font-style: italic;
+	}
+
+	.perf-date,
+	.perf-venue,
+	.perf-company {
+		font-size: 0.82rem;
+		color: var(--color-text-light);
+		margin: 0;
+		line-height: 1.4;
+	}
+
+	.perf-venue::before {
+		content: '📍 ';
+		font-style: normal;
+	}
+
+	.perf-arrow {
+		font-size: 1.1rem;
+		color: var(--color-light-gray);
+		transition: var(--transition);
+		flex-shrink: 0;
+	}
+
+	.empty-state {
+		text-align: center;
+		padding: var(--spacing-xl);
+		color: var(--color-text-light);
+		font-style: italic;
+	}
+
+	@media (max-width: 600px) {
+		.perf-card-inner {
+			gap: var(--spacing-md);
+			padding: var(--spacing-md);
+		}
+
+		.perf-date-badge {
+			width: 44px;
+			min-width: 44px;
+			height: 44px;
+		}
+
+		.badge-year {
+			font-size: 0.85rem;
+		}
+	}
+</style>
