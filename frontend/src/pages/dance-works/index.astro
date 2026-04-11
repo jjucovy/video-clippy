@@ -3,167 +3,177 @@ export const prerender = false;
 import Layout from '@/layouts/Layout.astro';
 import { list } from '@/lib/api';
 
-// Get filter from URL
 const url = new URL(Astro.request.url);
 const genreFilter = url.searchParams.get('genre');
 
-// Fetch genres for filter buttons
 const customFields = await list('custom-fields');
 const genreField = customFields.find((f: any) => f.name === 'Genre');
 const genres: string[] = genreField?.choices || [];
 
-// Fetch dance works, optionally filtered by genre
-let pieces;
+let pieces: any[];
 if (genreFilter) {
 	pieces = await list(`pieces?custom_Genre=${encodeURIComponent(genreFilter)}`);
 } else {
 	pieces = await list('pieces');
 }
+
+pieces = pieces.sort((a: any, b: any) => a.title.localeCompare(b.title));
 ---
 
 <Layout title="Dance Works">
-	<h1>Dance Works</h1>
+	<div class="page-header">
+		<span class="section-eyebrow">Repertoire</span>
+		<h1>Dance Works</h1>
+		<p class="page-subtitle">Choreographic works rooted in Isadora Duncan's legacy</p>
+	</div>
 
 	{genres.length > 0 && (
 		<div class="filters">
-			<span class="filter-label">Filter by genre:</span>
-			<a
-				href="/dance-works"
-				class:list={["filter-btn", { active: !genreFilter }]}
-			>
-				All
-			</a>
+			<span class="filter-label">Genre</span>
+			<a href="/dance-works" class:list={["filter-btn", { active: !genreFilter }]}>All</a>
 			{genres.map((genre) => (
-				<a
-					href={`/dance-works?genre=${encodeURIComponent(genre)}`}
-					class:list={["filter-btn", { active: genreFilter === genre }]}
-				>
+				<a href={`/dance-works?genre=${encodeURIComponent(genre)}`}
+				   class:list={["filter-btn", { active: genreFilter === genre }]}>
 					{genre}
 				</a>
 			))}
 		</div>
 	)}
 
-	{pieces.length > 0 ? (
-		<ul class="pieces-list">
-			{pieces.map((piece: any) => (
-				<li>
-					<a href={`/dance-works/${piece.id}`} class="piece-card">
-						<span class="piece-title">{piece.title}</span>
-						{piece.choreographers?.length > 0 && (
-							<span class="choreographer">by {piece.choreographers.map((c: any) => c.name).join(' & ')}</span>
-						)}
-						{piece.custom_fields?.Genre && (
-							<span class="genre-tag">{piece.custom_fields.Genre.value}</span>
-						)}
-					</a>
-				</li>
-			))}
-		</ul>
+	{pieces.length === 0 ? (
+		<div class="empty-state">
+			<p>No dance works found{genreFilter ? ` in "${genreFilter}"` : ''}.</p>
+		</div>
 	) : (
-		<p class="no-items">No dance works found{genreFilter ? ` in genre "${genreFilter}"` : ''}.</p>
+		<div class="works-grid">
+			{pieces.map((piece: any) => {
+				const genre = piece.custom_fields?.Genre?.value;
+				const choreographers = piece.choreographers?.map((c: any) => c.name) || [];
+				return (
+					<a href={`/dance-works/${piece.id}`} class="work-card">
+						<div class="work-accent"></div>
+						<div class="work-body">
+							<h3 class="work-title">{piece.title}</h3>
+							{choreographers.length > 0 && (
+								<p class="work-choreographer">
+									<span class="by-label">by</span> {choreographers.join(' & ')}
+								</p>
+							)}
+						</div>
+						<div class="work-footer">
+							{genre
+								? <span class="work-genre">{genre}</span>
+								: <span class="work-genre work-genre--empty">&mdash;</span>
+							}
+							<span class="work-arrow">↗</span>
+						</div>
+					</a>
+				);
+			})}
+		</div>
 	)}
 </Layout>
 
 <style>
-	h1 {
-		text-align: center;
-		margin-bottom: var(--spacing-lg);
-	}
+.works-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: var(--spacing-md);
+}
 
-	.filters {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--spacing-sm);
-		align-items: center;
-		justify-content: center;
-		margin-bottom: var(--spacing-xl);
-		padding: var(--spacing-md);
-		background: var(--color-white);
-		border-radius: var(--border-radius);
-		box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-	}
+.work-card {
+	display: flex;
+	flex-direction: column;
+	background: var(--color-bg-card);
+	border-radius: var(--border-radius);
+	overflow: hidden;
+	box-shadow: var(--shadow-card);
+	text-decoration: none;
+	color: inherit;
+	transition: var(--transition);
+	position: relative;
+}
 
-	.filter-label {
-		font-size: 0.875rem;
-		color: var(--color-text-light);
-		margin-right: var(--spacing-sm);
-	}
+.work-card:hover {
+	transform: translateY(-5px);
+	box-shadow: var(--shadow-card-hover);
+}
 
-	.filter-btn {
-		display: inline-block;
-		padding: 0.375rem 0.75rem;
-		background: var(--color-light-gray);
-		color: var(--color-text);
-		text-decoration: none;
-		border-radius: 1rem;
-		font-size: 0.875rem;
-		font-weight: 500;
-		transition: var(--transition);
-	}
+/* Teal accent bar at top */
+.work-accent {
+	height: 4px;
+	background: linear-gradient(90deg, var(--color-secondary) 0%, var(--color-accent-lavender) 100%);
+	transition: height 0.22s ease;
+}
 
-	.filter-btn:hover {
-		background: var(--color-secondary);
-		color: var(--color-white);
-	}
+.work-card:hover .work-accent {
+	height: 6px;
+}
 
-	.filter-btn.active {
-		background: var(--color-secondary);
-		color: var(--color-white);
-	}
+.work-body {
+	flex: 1;
+	padding: var(--spacing-md) var(--spacing-md) var(--spacing-sm);
+}
 
-	.pieces-list {
-		list-style: none;
-		padding: 0;
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-		gap: var(--spacing-md);
-	}
+.work-title {
+	font-size: 1.2rem;
+	font-style: italic;
+	color: var(--color-dark);
+	margin: 0 0 0.5rem;
+	line-height: 1.3;
+}
 
-	.piece-card {
-		display: block;
-		padding: var(--spacing-lg);
-		background: var(--color-white);
-		border-radius: var(--border-radius);
-		box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
-		text-decoration: none;
-		transition: var(--transition);
-	}
+.work-card:hover .work-title {
+	color: var(--color-accent-purple);
+}
 
-	.piece-card:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-	}
+.work-choreographer {
+	font-size: 0.8rem;
+	color: var(--color-text-muted);
+	margin: 0;
+	font-weight: 400;
+}
 
-	.piece-title {
-		display: block;
-		font-size: 1.1rem;
-		font-weight: 600;
-		color: var(--color-dark);
-		margin-bottom: var(--spacing-xs);
-	}
+.by-label {
+	font-style: italic;
+	margin-right: 0.2em;
+}
 
-	.choreographer {
-		display: block;
-		font-size: 0.875rem;
-		color: var(--color-text-light);
-		font-style: italic;
-		margin-bottom: var(--spacing-sm);
-	}
+.work-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--spacing-sm) var(--spacing-md);
+	border-top: 1px solid var(--color-light-gray);
+}
 
-	.genre-tag {
-		display: inline-block;
-		padding: 0.125rem 0.5rem;
-		background: var(--color-light-gray);
-		color: var(--color-secondary);
-		border-radius: 0.75rem;
-		font-size: 0.75rem;
-		font-weight: 500;
-	}
+.work-genre {
+	font-size: 0.68rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	color: var(--color-secondary);
+}
 
-	.no-items {
-		text-align: center;
-		color: var(--color-text-light);
-		font-style: italic;
-	}
+.work-genre--empty {
+	color: var(--color-text-muted);
+	font-weight: 400;
+}
+
+.work-arrow {
+	font-size: 1rem;
+	color: var(--color-text-muted);
+	transition: transform 0.22s ease, color 0.22s ease;
+	opacity: 0.5;
+}
+
+.work-card:hover .work-arrow {
+	transform: translate(2px, -2px);
+	color: var(--color-accent-purple);
+	opacity: 1;
+}
+
+@media (max-width: 640px) {
+	.works-grid { grid-template-columns: 1fr; }
+}
 </style>
