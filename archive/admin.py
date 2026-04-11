@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib import admin
 from django.contrib.contenttypes.admin import GenericTabularInline
 from django.utils.html import format_html
@@ -10,6 +12,8 @@ from .models import Video, Clip, Person, Piece, Company, Venue, Performance, Per
 import json
 from django.conf import settings
 from .utils.cloudflare import CloudflareStreamAPI
+
+logger = logging.getLogger(__name__)
 
 
 def _r2_is_configured():
@@ -410,10 +414,10 @@ class VideoAdmin(admin.ModelAdmin):
         })
     
     def get_upload_url_view(self, request):
-        """Proxy TUS requests to Cloudflare Stream API"""
+        """Proxy TUS creation requests to Cloudflare Stream API"""
         if request.method == 'POST':
             try:
-                import requests
+                import requests as http_requests
                 from django.conf import settings
 
                 # Get TUS headers from the client
@@ -421,24 +425,29 @@ class VideoAdmin(admin.ModelAdmin):
                 upload_metadata = request.headers.get('Upload-Metadata', '')
                 tus_resumable = request.headers.get('Tus-Resumable', '1.0.0')
 
-                # Proxy the request to Cloudflare Stream with TUS headers
+                if not upload_length:
+                    return JsonResponse({'success': False, 'error': 'Missing Upload-Length header'}, status=400)
+
+                # Proxy the request to Cloudflare Stream with TUS headers.
+                # Content-Length: 0 is required by the TUS spec for creation requests (no body).
                 endpoint = f"https://api.cloudflare.com/client/v4/accounts/{settings.CLOUDFLARE_ACCOUNT_ID}/stream?direct_user=true"
 
-                response = requests.post(
+                response = http_requests.post(
                     endpoint,
                     headers={
                         'Authorization': f'Bearer {settings.CLOUDFLARE_API_TOKEN}',
                         'Tus-Resumable': tus_resumable,
-                        'Upload-Length': upload_length,
+                        'Upload-Length': str(upload_length),
                         'Upload-Metadata': upload_metadata,
-                    }
+                        'Content-Length': '0',
+                    },
+                    data=b'',
                 )
 
                 # Get the upload URL from the Location header
                 destination = response.headers.get('Location')
 
                 if destination:
-                    # Return response with proper headers for TUS client
                     from django.http import HttpResponse
                     http_response = HttpResponse(status=response.status_code)
                     http_response['Access-Control-Expose-Headers'] = 'Location'
@@ -447,9 +456,19 @@ class VideoAdmin(admin.ModelAdmin):
                     http_response['Location'] = destination
                     return http_response
                 else:
-                    return JsonResponse({'success': False, 'error': 'No location header in response'}, status=500)
+                    logger.error(
+                        "CF Stream TUS creation failed: status=%s body=%r headers=%r",
+                        response.status_code, response.text[:500], dict(response.headers)
+                    )
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'No location header in Cloudflare response',
+                        'cf_status': response.status_code,
+                        'cf_body': response.text[:500],
+                    }, status=500)
 
             except Exception as e:
+                logger.exception("get_upload_url_view error")
                 return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
         return JsonResponse({'success': False, 'error': 'POST required'}, status=400)
