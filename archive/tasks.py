@@ -90,11 +90,12 @@ def _run_processing_pipeline(video, local_raw_path=None):
 
 
 def extract_clip_task(clip_id):
-    """Extract a clip segment from an R2 video as a standalone MP4.
+    """Extract a clip segment as a standalone MP4.
 
     Called via django-q2 async_task() after clip creation.
-    Downloads the transcoded source video, extracts the time range,
-    uploads the clip MP4 and thumbnail to R2.
+    Supports both R2-stored videos (downloaded from R2) and Cloudflare
+    Stream videos (downloaded via the CF downloads API). Uploads the
+    resulting clip MP4 and thumbnail to R2.
     """
     from archive.models import Clip
 
@@ -106,8 +107,11 @@ def extract_clip_task(clip_id):
 
     video = clip.video
 
-    if not video.r2_web_key:
-        logger.warning("Clip %s: parent video %s has no r2_web_key, skipping extraction", clip_id, video.pk)
+    if not video.r2_web_key and not video.cloudflare_stream_id:
+        logger.warning(
+            "Clip %s: parent video %s has neither r2_web_key nor cloudflare_stream_id, "
+            "cannot extract", clip_id, video.pk
+        )
         return
 
     try:
@@ -120,6 +124,7 @@ def extract_clip_task(clip_id):
 def _run_clip_extraction(clip, video):
     """Extract clip from source video via FFmpeg.
 
+    Downloads from R2 if available, otherwise falls back to Cloudflare Stream.
     Swap point for Modal.com — same pattern as _run_processing_pipeline.
     """
     from archive.utils.r2 import R2Client
@@ -128,10 +133,19 @@ def _run_clip_extraction(clip, video):
     r2 = R2Client()
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Download transcoded source video
+        # Download source video — prefer R2 (already transcoded), fall back to CF Stream
         source_path = os.path.join(tmpdir, 'source.mp4')
-        logger.info("Downloading source %s for clip %s", video.r2_web_key, clip.pk)
-        r2.client.download_file(r2.bucket_name, video.r2_web_key, source_path)
+        if video.r2_web_key:
+            logger.info("Downloading R2 source %s for clip %s", video.r2_web_key, clip.pk)
+            r2.client.download_file(r2.bucket_name, video.r2_web_key, source_path)
+        else:
+            logger.info(
+                "Downloading CF Stream source %s for clip %s",
+                video.cloudflare_stream_id, clip.pk
+            )
+            from archive.utils.cloudflare import CloudflareStreamAPI
+            cf = CloudflareStreamAPI()
+            cf.download_video(video.cloudflare_stream_id, source_path)
 
         # Extract clip segment
         clip_path = os.path.join(tmpdir, 'clip.mp4')

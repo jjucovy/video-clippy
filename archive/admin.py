@@ -737,8 +737,9 @@ class VideoAdmin(admin.ModelAdmin):
                     except (json.JSONDecodeError, KeyError) as e:
                         messages.warning(request, f'Clip created but could not add performers: {e}')
                 
-                # Queue clip extraction if this is an R2 video with R2 configured
-                if video.r2_web_key and _r2_is_configured():
+                # Queue clip extraction. R2 must be configured for the output.
+                # Source can be either an R2-stored video or a Cloudflare Stream video.
+                if (video.r2_web_key or video.cloudflare_stream_id) and _r2_is_configured():
                     from django_q.tasks import async_task
                     async_task('archive.tasks.extract_clip_task', str(clip.pk))
 
