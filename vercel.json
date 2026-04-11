@@ -1,0 +1,17 @@
+{
+  "buildCommand": "cd frontend && npm ci && npm run build && mkdir -p ../.vercel && cp -r .vercel/output ../.vercel/",
+  "installCommand": "echo 'deps installed in build step'",
+  "framework": null,
+  "redirects": [
+    {
+      "source": "/pieces/:path*",
+      "destination": "/dance-works/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/pieces",
+      "destination": "/dance-works",
+      "permanent": true
+    }
+  ]
+}
