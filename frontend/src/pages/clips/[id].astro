@@ -7,7 +7,10 @@ import { get } from '@/lib/api';
 
 const { id } = Astro.params;
 const clip = await get('clips', id);
-const video = clip.video;
+
+if (!clip) {
+	return new Response('Clip not found', { status: 404 });
+}
 
 // Merge piece's custom fields with clip's own, clip takes priority
 const mergedCustomFields = {

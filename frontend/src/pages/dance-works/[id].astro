@@ -7,6 +7,11 @@ import { get, list } from '@/lib/api';
 
 const { id } = Astro.params;
 const piece = await get('pieces', id);
+
+if (!piece) {
+	return new Response('Dance work not found', { status: 404 });
+}
+
 const clips = await list(`clips?piece=${id}`);
 ---
 

@@ -6,6 +6,11 @@ import { get, list } from '@/lib/api';
 
 const { id } = Astro.params;
 const performance = await get('performances', id);
+
+if (!performance) {
+	return new Response('Performance not found', { status: 404 });
+}
+
 const clips = await list(`clips?performance=${id}`);
 ---
 

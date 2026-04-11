@@ -6,6 +6,11 @@ import { get, list } from '@/lib/api';
 
 const { id } = Astro.params;
 const performer = await get('people', id);
+
+if (!performer) {
+	return new Response('Performer not found', { status: 404 });
+}
+
 const clips = await list(`clips?performers=${id}`);
 ---
 
