@@ -3,340 +3,239 @@ import Layout from '@/layouts/Layout.astro';
 ---
 
 <Layout title="Home">
+
+	<!-- Hero -->
 	<section class="hero">
-		<div class="hero-eyebrow">35 Years of Dance</div>
-		<h2 class="hero-title">Digital Archive of<br/><em>Dance Visions NY</em></h2>
-		<p class="hero-subtitle">
-			Preserving and sharing the historical and contemporary works of the company,
-			capturing performances that demonstrate how our dance roots continue to evolve
-			and inspire contemporary movement.
-		</p>
-		<div class="hero-actions">
-			<a href="/performances" class="btn btn-primary">Browse Performances</a>
-			<a href="/clips" class="btn btn-secondary">Watch Clips</a>
+		<div class="hero-text">
+			<span class="section-eyebrow">35 Years · New York City</span>
+			<h1 class="hero-title">Dance<br/><em>Visions NY</em></h1>
+			<p class="hero-sub">Video Archive</p>
+		</div>
+		<div class="hero-body">
+			<p class="hero-description">
+				A digital archive preserving 35 years of works rooted in Isadora Duncan's legacy —
+				from archival footage to contemporary performances, made accessible to researchers,
+				students, artists, and audiences worldwide.
+			</p>
+			<div class="hero-actions">
+				<a href="/performances" class="btn">Browse Performances</a>
+				<a href="/clips" class="btn btn-outline">Watch Clips</a>
+			</div>
 		</div>
 	</section>
 
-	<section class="explore-section">
-		<h3 class="section-label">Explore the Archive</h3>
-		<div class="explore-grid">
-			<a href="/performances" class="explore-card">
-				<div class="explore-icon">
-					<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
-				</div>
-				<div class="explore-card-body">
-					<h4>Performances</h4>
-					<p>Browse shows and events across 35 years of dance history</p>
-				</div>
-				<div class="explore-arrow">→</div>
-			</a>
-
-			<a href="/dance-works" class="explore-card">
-				<div class="explore-icon">
-					<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
-				</div>
-				<div class="explore-card-body">
-					<h4>Dance Works</h4>
-					<p>Discover choreographic works rooted in Isadora Duncan's legacy</p>
-				</div>
-				<div class="explore-arrow">→</div>
-			</a>
-
-			<a href="/clips" class="explore-card">
-				<div class="explore-icon">
-					<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-				</div>
-				<div class="explore-card-body">
-					<h4>Video Clips</h4>
-					<p>Watch curated clips from archival footage and live performances</p>
-				</div>
-				<div class="explore-arrow">→</div>
-			</a>
-
-			<a href="/performers" class="explore-card">
-				<div class="explore-icon">
-					<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-				</div>
-				<div class="explore-card-body">
-					<h4>Performers</h4>
-					<p>Meet the dancers, choreographers, and artists of the company</p>
-				</div>
-				<div class="explore-arrow">→</div>
-			</a>
-		</div>
+	<!-- Navigation tiles -->
+	<section class="tiles-section">
+		<a href="/performances" class="tile tile--purple">
+			<span class="tile-num">01</span>
+			<div class="tile-content">
+				<h3>Performances</h3>
+				<p>Shows & events across the company's history</p>
+			</div>
+			<span class="tile-arrow">↗</span>
+		</a>
+		<a href="/dance-works" class="tile tile--teal">
+			<span class="tile-num">02</span>
+			<div class="tile-content">
+				<h3>Dance Works</h3>
+				<p>Choreographic works rooted in Duncan's legacy</p>
+			</div>
+			<span class="tile-arrow">↗</span>
+		</a>
+		<a href="/clips" class="tile tile--dark">
+			<span class="tile-num">03</span>
+			<div class="tile-content">
+				<h3>Video Clips</h3>
+				<p>Curated clips from archival & live footage</p>
+			</div>
+			<span class="tile-arrow">↗</span>
+		</a>
+		<a href="/performers" class="tile tile--rose">
+			<span class="tile-num">04</span>
+			<div class="tile-content">
+				<h3>Performers</h3>
+				<p>Dancers, choreographers, and artists</p>
+			</div>
+			<span class="tile-arrow">↗</span>
+		</a>
 	</section>
 
-	<section class="mission-section">
-		<div class="mission-ornament">&mdash;</div>
-		<blockquote class="mission-quote">
+	<!-- Mission -->
+	<section class="mission">
+		<div class="mission-rule"></div>
+		<blockquote>
 			Our archive aims to build and educate by revealing the scope of the company's body
-			of work — making accessible historic works and contemporary art that builds on its
-			foundation to researchers, students, artists, historians, and lay people.
+			of work — making accessible historic and contemporary art that builds on its foundation
+			to researchers, students, artists, historians, and lay people.
 		</blockquote>
-		<p class="mission-attribution">Dance Visions NY &bull; Founded 1990</p>
+		<cite>Dance Visions NY &nbsp;·&nbsp; Est. 1990</cite>
 	</section>
+
 </Layout>
 
 <style>
-	/* Hero */
-	.hero {
-		text-align: center;
-		padding: var(--spacing-xl) var(--spacing-lg);
-		background: linear-gradient(160deg, #ffffff 0%, var(--color-bg-soft) 100%);
-		border-radius: var(--border-radius-lg);
-		margin-bottom: var(--spacing-xl);
-		border: 1px solid rgba(131, 205, 192, 0.2);
-		position: relative;
-		overflow: hidden;
-	}
+/* ── Hero ── */
+.hero {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--spacing-xl);
+	align-items: end;
+	padding: var(--spacing-2xl) 0 var(--spacing-xl);
+	border-bottom: 1px solid var(--color-light-gray);
+	margin-bottom: var(--spacing-xl);
+}
 
-	.hero::before {
-		content: '';
-		position: absolute;
-		top: 0; left: 0; right: 0;
-		height: 4px;
-		background: linear-gradient(90deg, var(--color-accent-purple), var(--color-secondary), var(--color-accent-lavender));
-	}
+.hero-title {
+	font-size: clamp(3rem, 6vw, 5rem);
+	line-height: 1;
+	margin: 0.4rem 0 0.5rem;
+	letter-spacing: -0.02em;
+}
 
-	.hero-eyebrow {
-		display: inline-block;
-		font-size: 0.75rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.2em;
-		color: var(--color-secondary);
-		background: rgba(131, 205, 192, 0.12);
-		border: 1px solid rgba(131, 205, 192, 0.3);
-		padding: 0.35rem 1rem;
-		border-radius: 2rem;
-		margin-bottom: var(--spacing-md);
-	}
+.hero-title em {
+	font-style: italic;
+	color: var(--color-accent-purple);
+}
 
-	.hero-title {
-		font-size: clamp(2rem, 5vw, 3.25rem);
-		margin-bottom: var(--spacing-md);
-		color: var(--color-dark);
-		line-height: 1.15;
-	}
+.hero-sub {
+	font-size: 0.72rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.25em;
+	color: var(--color-text-muted);
+	margin: 0;
+}
 
-	.hero-title em {
-		color: var(--color-accent-purple);
-	}
+.hero-description {
+	font-size: 1.05rem;
+	line-height: 1.75;
+	color: var(--color-text-light);
+	margin-bottom: var(--spacing-lg);
+	max-width: 480px;
+}
 
-	.hero-subtitle {
-		font-size: 1.1rem;
-		max-width: 680px;
-		margin: 0 auto var(--spacing-lg);
-		color: var(--color-text-light);
-		line-height: 1.7;
-	}
+.hero-actions {
+	display: flex;
+	gap: var(--spacing-sm);
+	flex-wrap: wrap;
+}
 
-	.hero-actions {
-		display: flex;
-		gap: var(--spacing-md);
-		justify-content: center;
-		flex-wrap: wrap;
-	}
+/* ── Tiles ── */
+.tiles-section {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 1px;
+	background: var(--color-light-gray);
+	border-radius: var(--border-radius-lg);
+	overflow: hidden;
+	margin-bottom: var(--spacing-xl);
+}
 
-	.btn-primary {
-		background: var(--color-accent-purple);
-		color: var(--color-white);
-		padding: 0.75rem 1.75rem;
-		font-size: 0.9rem;
-		letter-spacing: 0.04em;
-	}
+.tile {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	padding: var(--spacing-lg) var(--spacing-md);
+	min-height: 220px;
+	text-decoration: none;
+	color: white;
+	overflow: hidden;
+	transition: var(--transition);
+}
 
-	.btn-primary:hover {
-		background: #464f9e;
-		color: var(--color-white);
-	}
+.tile:hover {
+	transform: scale(1.02);
+	z-index: 1;
+	box-shadow: var(--shadow-lg);
+}
 
-	.btn-secondary {
-		background: transparent;
-		color: var(--color-dark);
-		border: 2px solid var(--color-light-gray);
-		padding: 0.75rem 1.75rem;
-		font-size: 0.9rem;
-		letter-spacing: 0.04em;
-	}
+.tile:hover .tile-arrow {
+	transform: translate(3px, -3px);
+}
 
-	.btn-secondary:hover {
-		border-color: var(--color-secondary);
-		color: var(--color-secondary);
-		background: transparent;
-		transform: translateY(-1px);
-	}
+.tile--purple  { background: #4a4fa0; }
+.tile--teal    { background: #3a9e94; }
+.tile--dark    { background: var(--color-dark); }
+.tile--rose    { background: #a06060; }
 
-	/* Explore grid */
-	.explore-section {
-		margin-bottom: var(--spacing-xl);
-	}
+.tile-num {
+	font-family: var(--font-display);
+	font-size: 2.5rem;
+	font-weight: 700;
+	opacity: 0.2;
+	line-height: 1;
+	margin-bottom: auto;
+}
 
-	.section-label {
-		font-size: 0.75rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.18em;
-		color: var(--color-text-light);
-		margin-bottom: var(--spacing-lg);
-		text-align: center;
-		font-family: var(--font-body);
-		font-style: normal;
-	}
+.tile-content h3 {
+	color: white;
+	font-size: 1.1rem;
+	margin-bottom: 0.4rem;
+	font-style: italic;
+}
 
-	.explore-grid {
-		display: grid;
-		grid-template-columns: repeat(2, 1fr);
-		gap: var(--spacing-md);
-	}
+.tile-content p {
+	font-size: 0.8rem;
+	color: rgba(255,255,255,0.65);
+	margin: 0;
+	line-height: 1.4;
+}
 
-	.explore-card {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-md);
-		padding: var(--spacing-lg);
-		background: var(--color-white);
-		border-radius: var(--border-radius);
-		text-decoration: none;
-		color: inherit;
-		transition: var(--transition);
-		box-shadow: var(--shadow-card);
-		border: 1px solid transparent;
-		position: relative;
-		overflow: hidden;
-	}
+.tile-arrow {
+	position: absolute;
+	top: var(--spacing-md);
+	right: var(--spacing-md);
+	font-size: 1.2rem;
+	opacity: 0.5;
+	transition: var(--transition);
+}
 
-	.explore-card::before {
-		content: '';
-		position: absolute;
-		left: 0; top: 0; bottom: 0;
-		width: 3px;
-		background: var(--color-secondary);
-		opacity: 0;
-		transition: opacity 0.2s ease;
-	}
+/* ── Mission ── */
+.mission {
+	text-align: center;
+	padding: var(--spacing-xl) 0;
+}
 
-	.explore-card:hover {
-		box-shadow: var(--shadow-card-hover);
-		border-color: rgba(131, 205, 192, 0.25);
-		transform: translateY(-2px);
-		color: inherit;
-	}
+.mission-rule {
+	width: 48px;
+	height: 2px;
+	background: var(--color-secondary);
+	margin: 0 auto var(--spacing-lg);
+	border-radius: 2px;
+}
 
-	.explore-card:hover::before {
-		opacity: 1;
-	}
+.mission blockquote {
+	font-family: var(--font-display);
+	font-style: italic;
+	font-size: clamp(1.1rem, 2vw, 1.4rem);
+	line-height: 1.75;
+	color: var(--color-dark);
+	max-width: 660px;
+	margin: 0 auto var(--spacing-md);
+	border: none;
+	padding: 0;
+}
 
-	.explore-card:hover .explore-arrow {
-		transform: translateX(4px);
-		color: var(--color-secondary);
-	}
+.mission cite {
+	font-size: 0.72rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.18em;
+	color: var(--color-text-muted);
+	font-style: normal;
+}
 
-	.explore-icon {
-		width: 44px;
-		height: 44px;
-		border-radius: var(--border-radius-sm);
-		background: rgba(131, 205, 192, 0.12);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		color: var(--color-secondary);
-	}
+/* ── Responsive ── */
+@media (max-width: 900px) {
+	.hero { grid-template-columns: 1fr; gap: var(--spacing-md); padding-top: var(--spacing-xl); }
+	.hero-description { max-width: 100%; }
+	.tiles-section { grid-template-columns: repeat(2, 1fr); }
+}
 
-	.explore-icon svg {
-		width: 22px;
-		height: 22px;
-	}
-
-	.explore-card-body {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.explore-card-body h4 {
-		font-family: var(--font-body);
-		font-style: normal;
-		font-size: 0.95rem;
-		font-weight: 600;
-		margin: 0 0 0.25rem;
-		color: var(--color-dark);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.explore-card-body p {
-		font-size: 0.82rem;
-		color: var(--color-text-light);
-		margin: 0;
-		line-height: 1.45;
-	}
-
-	.explore-arrow {
-		font-size: 1.1rem;
-		color: var(--color-light-gray);
-		transition: var(--transition);
-		flex-shrink: 0;
-	}
-
-	/* Mission quote */
-	.mission-section {
-		background: var(--color-sidebar-bg);
-		border-radius: var(--border-radius-lg);
-		padding: var(--spacing-xl);
-		text-align: center;
-		color: var(--color-sidebar-text-bright);
-	}
-
-	.mission-ornament {
-		color: var(--color-sidebar-accent);
-		font-size: 1.5rem;
-		letter-spacing: 0.5em;
-		margin-bottom: var(--spacing-md);
-		opacity: 0.6;
-	}
-
-	.mission-quote {
-		font-family: var(--font-heading);
-		font-style: italic;
-		font-size: clamp(1rem, 2.2vw, 1.3rem);
-		line-height: 1.75;
-		color: rgba(232, 224, 216, 0.85);
-		max-width: 680px;
-		margin: 0 auto var(--spacing-md);
-		border: none;
-		padding: 0;
-	}
-
-	.mission-attribution {
-		font-size: 0.78rem;
-		font-weight: 500;
-		text-transform: uppercase;
-		letter-spacing: 0.15em;
-		color: var(--color-sidebar-accent);
-		margin: 0;
-		opacity: 0.8;
-	}
-
-	/* Responsive */
-	@media (max-width: 900px) {
-		.explore-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	@media (max-width: 768px) {
-		.hero {
-			padding: var(--spacing-lg) var(--spacing-md);
-		}
-
-		.hero-actions {
-			flex-direction: column;
-			align-items: center;
-		}
-
-		.mission-section {
-			padding: var(--spacing-lg) var(--spacing-md);
-		}
-	}
+@media (max-width: 560px) {
+	.tiles-section { grid-template-columns: 1fr; }
+	.tile { min-height: 140px; }
+	.hero-title { font-size: 3rem; }
+}
 </style>
