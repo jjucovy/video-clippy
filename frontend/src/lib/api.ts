@@ -1,8 +1,4 @@
-const API_URL = (import.meta.env.PUBLIC_API_URL || '').replace(/\/$/, '');
-
-if (!API_URL) {
-    console.warn('[api] PUBLIC_API_URL is not set — API calls will fail. Set it in your Vercel environment variables.');
-}
+const API_URL = (import.meta.env.PUBLIC_API_URL || 'https://video-clippy-mvoj.onrender.com/api').replace(/\/$/, '');
 
 export async function list(resource: string): Promise<any[]> {
     if (!API_URL) return [];
