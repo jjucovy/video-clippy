@@ -6,6 +6,11 @@ import { get, list } from '@/lib/api';
 
 const { id } = Astro.params;
 const venue = await get('venues', id);
+
+if (!venue) {
+	return new Response('Venue not found', { status: 404 });
+}
+
 const clips = await list(`clips?venue=${id}`);
 ---
 
