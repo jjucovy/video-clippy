@@ -428,14 +428,22 @@ class VideoAdmin(admin.ModelAdmin):
                 if not upload_length:
                     return JsonResponse({'success': False, 'error': 'Missing Upload-Length header'}, status=400)
 
+                account_id = getattr(settings, 'CLOUDFLARE_ACCOUNT_ID', None)
+                api_token = getattr(settings, 'CLOUDFLARE_API_TOKEN', None)
+                if not account_id or not api_token:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Cloudflare credentials not configured on server (CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN)',
+                    }, status=500)
+
                 # Proxy the request to Cloudflare Stream with TUS headers.
                 # Content-Length: 0 is required by the TUS spec for creation requests (no body).
-                endpoint = f"https://api.cloudflare.com/client/v4/accounts/{settings.CLOUDFLARE_ACCOUNT_ID}/stream?direct_user=true"
+                endpoint = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/stream?direct_user=true"
 
                 response = http_requests.post(
                     endpoint,
                     headers={
-                        'Authorization': f'Bearer {settings.CLOUDFLARE_API_TOKEN}',
+                        'Authorization': f'Bearer {api_token}',
                         'Tus-Resumable': tus_resumable,
                         'Upload-Length': str(upload_length),
                         'Upload-Metadata': upload_metadata,
