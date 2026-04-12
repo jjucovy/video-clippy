@@ -17,12 +17,12 @@ logger = logging.getLogger(__name__)
 
 
 def _r2_is_configured():
-    """Check if R2 storage is fully configured via environment variables."""
+    """Check if R2 storage is configured. R2_PUBLIC_URL is optional (presigned URLs work without it)."""
     return all([
-        settings.R2_PUBLIC_URL,
         settings.R2_ACCOUNT_ID,
         settings.R2_ACCESS_KEY_ID,
         settings.R2_SECRET_ACCESS_KEY,
+        settings.R2_BUCKET_NAME,
     ])
 
 class CustomFieldValueForm(forms.ModelForm):
