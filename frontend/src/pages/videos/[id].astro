@@ -1,0 +1,145 @@
+---
+export const prerender = false;
+import Layout from '@/layouts/Layout.astro';
+import VideoPlayer from '@/components/VideoPlayer.astro';
+import { get, list } from '@/lib/api';
+
+const { id } = Astro.params;
+const video = await get('videos', id);
+
+if (!video || video.status !== 'ready') {
+	return new Response('Video not found', { status: 404 });
+}
+
+const clips = await list(`clips?video=${id}`).catch(() => []);
+---
+
+<Layout title={video.title}>
+	<h1>{video.title}</h1>
+	{video.description && <p class="description">{video.description}</p>}
+
+	<VideoPlayer
+		videoUrl={video.video_url}
+		thumbnailUrl={video.thumbnail_url}
+		title={video.title}
+		isExtracted={true}
+	/>
+
+	<div class="video-meta">
+		{video.duration_formatted && (
+			<p><strong>Duration:</strong> {video.duration_formatted}</p>
+		)}
+		{video.provenance && (
+			<p><strong>Provenance:</strong> {video.provenance}</p>
+		)}
+	</div>
+
+	{clips.length > 0 && (
+		<section class="clips-section">
+			<h2>Clips from this video</h2>
+			<div class="clips-list">
+				{clips.map((clip: any) => (
+					<a href={`/clips/${clip.id}`} class="clip-row">
+						<div class="clip-thumb">
+							{clip.thumbnail_url
+								? <img src={clip.thumbnail_url} alt={clip.title} loading="lazy" />
+								: <div class="thumb-placeholder">▶</div>
+							}
+						</div>
+						<div class="clip-info">
+							<span class="clip-title">{clip.title}</span>
+							{clip.start_time_formatted && clip.end_time_formatted && (
+								<span class="clip-time">{clip.start_time_formatted} – {clip.end_time_formatted}</span>
+							)}
+						</div>
+					</a>
+				))}
+			</div>
+		</section>
+	)}
+</Layout>
+
+<style>
+.description {
+	margin: var(--spacing-lg) 0;
+	color: var(--color-text-light);
+	font-style: italic;
+	font-size: 1.1rem;
+	line-height: 1.6;
+	text-align: center;
+	max-width: 600px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.video-meta {
+	margin: var(--spacing-xl) 0;
+	padding: var(--spacing-lg);
+	background: var(--color-white);
+	border-radius: var(--border-radius);
+	box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+}
+
+.video-meta p {
+	margin: var(--spacing-sm) 0;
+}
+
+.clips-section { margin-top: var(--spacing-xl); }
+
+.clips-section h2 {
+	font-size: 1.4rem;
+	margin-bottom: var(--spacing-md);
+	font-style: italic;
+}
+
+.clips-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+}
+
+.clip-row {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-md);
+	padding: var(--spacing-sm);
+	background: var(--color-white);
+	border-radius: var(--border-radius);
+	text-decoration: none;
+	color: inherit;
+	transition: var(--transition);
+	box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+}
+
+.clip-row:hover { transform: translateX(4px); box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+
+.clip-thumb {
+	width: 100px;
+	aspect-ratio: 16/9;
+	flex-shrink: 0;
+	border-radius: var(--border-radius-sm);
+	overflow: hidden;
+	background: var(--color-dark);
+}
+
+.clip-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.thumb-placeholder {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: rgba(255,255,255,0.2);
+	font-size: 1.2rem;
+}
+
+.clip-info { display: flex; flex-direction: column; gap: 0.25rem; }
+
+.clip-title { font-weight: 600; font-style: italic; }
+
+.clip-time {
+	font-size: 0.8rem;
+	color: var(--color-text-muted);
+}
+</style>
