@@ -1,0 +1,169 @@
+---
+export const prerender = false;
+import Layout from '@/layouts/Layout.astro';
+import { list } from '@/lib/api';
+
+const allVideos = await list('videos');
+const videos = allVideos
+	.filter((v: any) => v.status === 'ready' && v.video_url)
+	.sort((a: any, b: any) => a.title.localeCompare(b.title));
+---
+
+<Layout title="Videos">
+	<div class="page-header">
+		<span class="section-eyebrow">Archive</span>
+		<h1>Full Videos</h1>
+		<p class="page-subtitle">Complete archival recordings</p>
+	</div>
+
+	{videos.length === 0 ? (
+		<div class="empty-state">
+			<p>No videos available yet.</p>
+		</div>
+	) : (
+		<div class="videos-grid">
+			{videos.map((video: any) => (
+				<article class="video-card">
+					<a href={`/videos/${video.id}`} class="video-link">
+						<div class="video-thumb">
+							{video.thumbnail_url
+								? <img src={video.thumbnail_url} alt={video.title} loading="lazy" />
+								: <div class="thumb-placeholder"><span>▶</span></div>
+							}
+							<div class="video-overlay">
+								<span class="play-btn">▶</span>
+							</div>
+							{video.duration_formatted && (
+								<span class="duration-badge">{video.duration_formatted}</span>
+							)}
+						</div>
+						<div class="video-info">
+							<h3 class="video-title">{video.title}</h3>
+							{video.clips_count > 0 && (
+								<p class="clips-count">{video.clips_count} clip{video.clips_count !== 1 ? 's' : ''}</p>
+							)}
+						</div>
+					</a>
+				</article>
+			))}
+		</div>
+	)}
+</Layout>
+
+<style>
+.videos-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: var(--spacing-md);
+}
+
+.video-card {
+	background: var(--color-bg-card);
+	border-radius: var(--border-radius);
+	overflow: hidden;
+	box-shadow: var(--shadow-card);
+	transition: var(--transition);
+}
+
+.video-card:hover {
+	transform: translateY(-5px);
+	box-shadow: var(--shadow-card-hover);
+}
+
+.video-link { display: block; color: inherit; text-decoration: none; }
+
+.video-thumb {
+	position: relative;
+	aspect-ratio: 16 / 9;
+	background: var(--color-dark);
+	overflow: hidden;
+}
+
+.video-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+	transition: transform 0.4s ease;
+}
+
+.video-card:hover .video-thumb img { transform: scale(1.05); }
+
+.thumb-placeholder {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(135deg, #1a1820 0%, #2e2b35 100%);
+}
+
+.thumb-placeholder span {
+	font-size: 2rem;
+	opacity: 0.2;
+	color: white;
+}
+
+.video-overlay {
+	position: absolute;
+	inset: 0;
+	background: rgba(20, 18, 32, 0.45);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	transition: var(--transition);
+}
+
+.video-card:hover .video-overlay { opacity: 1; }
+
+.play-btn {
+	width: 52px;
+	height: 52px;
+	background: rgba(255,255,255,0.95);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.1rem;
+	color: var(--color-dark);
+	padding-left: 3px;
+	box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.duration-badge {
+	position: absolute;
+	bottom: 0.5rem;
+	right: 0.5rem;
+	background: rgba(20, 18, 32, 0.75);
+	color: white;
+	font-size: 0.7rem;
+	font-weight: 600;
+	padding: 0.2rem 0.5rem;
+	border-radius: var(--border-radius-sm);
+	letter-spacing: 0.05em;
+}
+
+.video-info { padding: var(--spacing-md); }
+
+.video-title {
+	font-size: 1rem;
+	margin: 0 0 0.3rem;
+	color: var(--color-dark);
+	line-height: 1.35;
+	font-style: italic;
+}
+
+.clips-count {
+	font-size: 0.78rem;
+	color: var(--color-text-muted);
+	margin: 0;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+@media (max-width: 640px) {
+	.videos-grid { grid-template-columns: 1fr; }
+}
+</style>
