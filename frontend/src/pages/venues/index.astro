@@ -45,7 +45,8 @@ venues.sort((a: any, b: any) => a.name.localeCompare(b.name));
 	.page-header {
 		margin-bottom: var(--spacing-xl);
 		padding-bottom: var(--spacing-lg);
-		border-bottom: 1px solid var(--color-light-gray);
+		border-bottom: 2px solid var(--color-primary);
+		text-align: center;
 	}
 
 	.page-header h1 {
@@ -55,8 +56,8 @@ venues.sort((a: any, b: any) => a.name.localeCompare(b.name));
 	.page-subtitle {
 		color: var(--color-text-light);
 		font-size: 1rem;
-		font-style: italic;
 		margin: 0;
+		text-align: center;
 	}
 
 	.venues-grid {
@@ -71,25 +72,26 @@ venues.sort((a: any, b: any) => a.name.localeCompare(b.name));
 		gap: var(--spacing-md);
 		padding: var(--spacing-md) var(--spacing-lg);
 		background: var(--color-white);
-		border-radius: var(--border-radius);
+		border-radius: var(--button-radius);
 		text-decoration: none;
 		color: inherit;
 		box-shadow: var(--shadow-card);
 		transition: var(--transition);
-		border: 1px solid transparent;
-		border-left: 3px solid var(--color-accent-lavender);
+		border: 1px solid var(--color-light-gray);
+		border-left: 3px solid var(--color-primary);
 	}
 
 	.venue-card:hover {
 		box-shadow: var(--shadow-card-hover);
-		border-color: rgba(149, 131, 204, 0.4);
-		border-left-color: var(--color-accent-lavender);
+		border-color: var(--color-primary);
+		border-left-color: var(--color-secondary);
 		transform: translateY(-2px);
 		color: inherit;
+		text-decoration: none;
 	}
 
 	.venue-card:hover .venue-arrow {
-		color: var(--color-accent-lavender);
+		color: var(--color-primary);
 		transform: translateX(4px);
 	}
 
@@ -97,9 +99,9 @@ venues.sort((a: any, b: any) => a.name.localeCompare(b.name));
 		width: 42px;
 		min-width: 42px;
 		height: 42px;
-		border-radius: var(--border-radius-sm);
-		background: rgba(149, 131, 204, 0.1);
-		color: var(--color-accent-lavender);
+		border-radius: 0;
+		background: rgba(125, 174, 210, 0.15);
+		color: var(--color-primary);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -119,10 +121,10 @@ venues.sort((a: any, b: any) => a.name.localeCompare(b.name));
 		font-size: 1rem;
 		margin: 0 0 0.2rem;
 		color: var(--color-dark);
-		font-style: italic;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		text-align: left;
 	}
 
 	.venue-location {
