@@ -12,7 +12,6 @@ class R2Client:
             'R2_ACCOUNT_ID': settings.R2_ACCOUNT_ID,
             'R2_ACCESS_KEY_ID': settings.R2_ACCESS_KEY_ID,
             'R2_SECRET_ACCESS_KEY': settings.R2_SECRET_ACCESS_KEY,
-            'R2_PUBLIC_URL': settings.R2_PUBLIC_URL,
         }
         missing = [k for k, v in required.items() if not v]
         if missing:
@@ -21,7 +20,6 @@ class R2Client:
             )
 
         self.bucket_name = settings.R2_BUCKET_NAME
-        self.public_url = settings.R2_PUBLIC_URL
         self.client = boto3.client(
             's3',
             endpoint_url=f"https://{settings.R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
@@ -47,11 +45,29 @@ class R2Client:
         else:
             self.client.upload_fileobj(file_obj, self.bucket_name, key, ExtraArgs=extra_args)
 
+    def generate_presigned_read_url(self, key, expires_in=3600):
+        """Generate a presigned URL for reading (GET) an R2 object.
+
+        Works with private buckets — no public access required.
+        Default expiry is 1 hour, which is fine since URLs are generated
+        fresh on each API/serializer call.
+        """
+        return self.client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': self.bucket_name, 'Key': key},
+            ExpiresIn=expires_in,
+        )
+
     def generate_url(self, key):
-        """Return the public URL for an R2 object."""
+        """Return a URL for an R2 object.
+
+        Uses a presigned read URL so private buckets work without public access.
+        Falls back to public URL construction if R2_PUBLIC_URL is set and
+        presigned URL generation fails.
+        """
         if not key:
             return ''
-        return f"{self.public_url.rstrip('/')}/{key}"
+        return self.generate_presigned_read_url(key)
 
     def delete_file(self, key):
         """Delete an object from R2."""

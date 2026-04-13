@@ -20,6 +20,11 @@ _render_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if _render_hostname and _render_hostname not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_render_hostname)
 
+# Accept any *.vercel.app host so preview deployments don't 400 if Django is
+# accidentally reached (the intended deployment is the Astro frontend on Vercel,
+# not Django — but this prevents a hard crash in the meantime).
+ALLOWED_HOSTS.append('.vercel.app')
+
 # CSRF trusted origins — required by Django 4.0+ for any non-localhost HTTPS request.
 # Without this the admin login (and any form POST) returns 403.
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())

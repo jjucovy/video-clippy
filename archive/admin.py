@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib import admin
 from django.contrib.contenttypes.admin import GenericTabularInline
 from django.utils.html import format_html
@@ -11,14 +13,16 @@ import json
 from django.conf import settings
 from .utils.cloudflare import CloudflareStreamAPI
 
+logger = logging.getLogger(__name__)
+
 
 def _r2_is_configured():
-    """Check if R2 storage is fully configured via environment variables."""
+    """Check if R2 storage is configured. R2_PUBLIC_URL is optional (presigned URLs work without it)."""
     return all([
-        settings.R2_PUBLIC_URL,
         settings.R2_ACCOUNT_ID,
         settings.R2_ACCESS_KEY_ID,
         settings.R2_SECRET_ACCESS_KEY,
+        settings.R2_BUCKET_NAME,
     ])
 
 class CustomFieldValueForm(forms.ModelForm):
@@ -410,10 +414,10 @@ class VideoAdmin(admin.ModelAdmin):
         })
     
     def get_upload_url_view(self, request):
-        """Proxy TUS requests to Cloudflare Stream API"""
+        """Proxy TUS creation requests to Cloudflare Stream API"""
         if request.method == 'POST':
             try:
-                import requests
+                import requests as http_requests
                 from django.conf import settings
 
                 # Get TUS headers from the client
@@ -421,24 +425,37 @@ class VideoAdmin(admin.ModelAdmin):
                 upload_metadata = request.headers.get('Upload-Metadata', '')
                 tus_resumable = request.headers.get('Tus-Resumable', '1.0.0')
 
-                # Proxy the request to Cloudflare Stream with TUS headers
-                endpoint = f"https://api.cloudflare.com/client/v4/accounts/{settings.CLOUDFLARE_ACCOUNT_ID}/stream?direct_user=true"
+                if not upload_length:
+                    return JsonResponse({'success': False, 'error': 'Missing Upload-Length header'}, status=400)
 
-                response = requests.post(
+                account_id = getattr(settings, 'CLOUDFLARE_ACCOUNT_ID', None)
+                api_token = getattr(settings, 'CLOUDFLARE_API_TOKEN', None)
+                if not account_id or not api_token:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Cloudflare credentials not configured on server (CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN)',
+                    }, status=500)
+
+                # Proxy the request to Cloudflare Stream with TUS headers.
+                # Content-Length: 0 is required by the TUS spec for creation requests (no body).
+                endpoint = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/stream?direct_user=true"
+
+                response = http_requests.post(
                     endpoint,
                     headers={
-                        'Authorization': f'Bearer {settings.CLOUDFLARE_API_TOKEN}',
+                        'Authorization': f'Bearer {api_token}',
                         'Tus-Resumable': tus_resumable,
-                        'Upload-Length': upload_length,
+                        'Upload-Length': str(upload_length),
                         'Upload-Metadata': upload_metadata,
-                    }
+                        'Content-Length': '0',
+                    },
+                    data=b'',
                 )
 
                 # Get the upload URL from the Location header
                 destination = response.headers.get('Location')
 
                 if destination:
-                    # Return response with proper headers for TUS client
                     from django.http import HttpResponse
                     http_response = HttpResponse(status=response.status_code)
                     http_response['Access-Control-Expose-Headers'] = 'Location'
@@ -447,9 +464,19 @@ class VideoAdmin(admin.ModelAdmin):
                     http_response['Location'] = destination
                     return http_response
                 else:
-                    return JsonResponse({'success': False, 'error': 'No location header in response'}, status=500)
+                    logger.error(
+                        "CF Stream TUS creation failed: status=%s body=%r headers=%r",
+                        response.status_code, response.text[:500], dict(response.headers)
+                    )
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'No location header in Cloudflare response',
+                        'cf_status': response.status_code,
+                        'cf_body': response.text[:500],
+                    }, status=500)
 
             except Exception as e:
+                logger.exception("get_upload_url_view error")
                 return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
         return JsonResponse({'success': False, 'error': 'POST required'}, status=400)
@@ -737,8 +764,9 @@ class VideoAdmin(admin.ModelAdmin):
                     except (json.JSONDecodeError, KeyError) as e:
                         messages.warning(request, f'Clip created but could not add performers: {e}')
                 
-                # Queue clip extraction if this is an R2 video with R2 configured
-                if video.r2_web_key and _r2_is_configured():
+                # Queue clip extraction. R2 must be configured for the output.
+                # Source can be either an R2-stored video or a Cloudflare Stream video.
+                if (video.r2_web_key or video.cloudflare_stream_id) and _r2_is_configured():
                     from django_q.tasks import async_task
                     async_task('archive.tasks.extract_clip_task', str(clip.pk))
 

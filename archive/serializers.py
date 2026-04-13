@@ -5,13 +5,14 @@ from .models import Video, Clip, Person, Piece, Company, Venue, Performance, Per
 
 
 def _r2_url(key):
-    """Build a public R2 URL from a key. No boto3 client needed — just string concat."""
+    """Generate a presigned read URL for an R2 object. Works with private buckets."""
     if not key:
         return ''
-    public_url = getattr(settings, 'R2_PUBLIC_URL', '')
-    if not public_url:
+    try:
+        from .utils.r2 import R2Client
+        return R2Client().generate_presigned_read_url(key)
+    except Exception:
         return ''
-    return f"{public_url.rstrip('/')}/{key}"
 
 
 class CustomFieldsMixin:

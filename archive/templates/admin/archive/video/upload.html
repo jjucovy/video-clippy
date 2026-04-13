@@ -357,7 +357,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const resumeTusUrl = sessionStorage.getItem('resumeTusUrl');
                 const resumeFilename = sessionStorage.getItem('resumeFilename');
 
-                if (resumeVideoId && resumeTusUrl) {
+                // Only honour TUS resume state when we're on the CF Stream path.
+                // Stale TUS session storage must not block R2 uploads.
+                if (!USE_R2 && resumeVideoId && resumeTusUrl) {
                     if (file.name !== resumeFilename) {
                         alert(`Please select the correct file: ${resumeFilename}`);
                         uppy.removeFile(file.id);

@@ -24,6 +24,8 @@ const playerId = `video-player-${Math.random().toString(36).slice(2, 9)}`;
       width="800"
       height="450"
       poster={thumbnailUrl}
+      data-start-time={startTime !== undefined ? startTime : undefined}
+      data-end-time={endTime !== undefined ? endTime : undefined}
     >
       <source src={videoUrl} type="video/mp4" />
     </video>
@@ -90,13 +92,55 @@ const playerId = `video-player-${Math.random().toString(36).slice(2, 9)}`;
 </style>
 
 <script>
-  // Only initialize Video.js for HLS players (non-MP4)
-  const videoElements = document.querySelectorAll<HTMLVideoElement>('video.video-js');
-  if (videoElements.length > 0) {
-    import('@/utils/videojs-player').then(({ initializeAllVideoPlayers }) => {
-      initializeAllVideoPlayers().catch(error => {
-        console.error('Failed to initialize video players:', error);
+  // Initialize clip boundaries for all video players on this page.
+  // HLS (video.video-js) uses Video.js; MP4 uses native HTML5 with inline JS.
+
+  // ── HLS players ──────────────────────────────────────────────────────────
+  const hlsVideos = document.querySelectorAll<HTMLVideoElement>('video.video-js');
+  if (hlsVideos.length > 0) {
+    import('@/utils/videojs-player').then(({ initializeVideoJsPlayer }) => {
+      hlsVideos.forEach(async (el) => {
+        const startTime = parseFloat(el.dataset.startTime || '');
+        const endTime = parseFloat(el.dataset.endTime || '');
+        try {
+          await initializeVideoJsPlayer({
+            playerId: el.id,
+            startTime: isNaN(startTime) ? undefined : startTime,
+            endTime: isNaN(endTime) ? undefined : endTime,
+          });
+        } catch (e) {
+          console.error('Video.js init failed for', el.id, e);
+        }
       });
     });
   }
+
+  // ── MP4 players with clip boundaries ─────────────────────────────────────
+  const mp4Videos = document.querySelectorAll<HTMLVideoElement>('video[data-start-time]:not(.video-js)');
+  mp4Videos.forEach((video) => {
+    const startTime = parseFloat(video.dataset.startTime || '');
+    const endTime = parseFloat(video.dataset.endTime || '');
+    if (isNaN(startTime) || isNaN(endTime)) return;
+
+    // Seek to clip start when ready
+    const seekToStart = () => {
+      if (video.currentTime < startTime) video.currentTime = startTime;
+    };
+    video.addEventListener('loadedmetadata', seekToStart);
+    if (video.readyState >= 1) seekToStart();
+
+    // Stop at clip end
+    video.addEventListener('timeupdate', () => {
+      if (video.currentTime >= endTime) {
+        video.pause();
+        video.currentTime = endTime;
+      }
+    });
+
+    // Prevent seeking before start
+    video.addEventListener('seeking', () => {
+      if (video.currentTime < startTime) video.currentTime = startTime;
+      if (video.currentTime > endTime) video.currentTime = endTime;
+    });
+  });
 </script>

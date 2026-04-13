@@ -47,15 +47,15 @@
 </style>
 <script>
 (function() {
-    // Auto-refresh processing videos every 10 seconds
+    // Poll processing videos by querying their status API directly.
+    // This replaces the old approach of submitting the CF Stream action form,
+    // which caused [object HTMLSelectElement] errors and didn't work for R2 videos.
     let pollingInterval = null;
-    let initialProcessingIds = [];
     let toastShown = false;
 
     function showReloadToast() {
         if (toastShown) return;
         toastShown = true;
-
         const toast = document.createElement('div');
         toast.className = 'video-refresh-toast';
         toast.innerHTML = `
@@ -66,70 +66,40 @@
     }
 
     function getProcessingVideoIds() {
-        const processingVideos = [];
+        const ids = [];
         document.querySelectorAll('#result_list tbody tr').forEach(row => {
             const statusCell = row.querySelector('td.field-status');
             if (statusCell && statusCell.textContent.trim().toLowerCase() === 'processing') {
                 const checkbox = row.querySelector('input[name="_selected_action"]');
-                if (checkbox) {
-                    processingVideos.push(checkbox.value);
-                }
+                if (checkbox) ids.push(checkbox.value);
             }
         });
-        return processingVideos;
+        return ids;
     }
 
-    function refreshProcessingVideos() {
+    async function pollProcessingVideos() {
         const videoIds = getProcessingVideoIds();
-
         if (videoIds.length === 0) {
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                pollingInterval = null;
-
-                // If we had processing videos before, show toast
-                if (initialProcessingIds.length > 0) {
-                    showReloadToast();
-                }
-            }
+            clearInterval(pollingInterval);
+            pollingInterval = null;
             return;
         }
 
-        console.log(`Auto-refreshing ${videoIds.length} processing video(s)...`);
-
-        // Select the processing videos
-        videoIds.forEach(id => {
-            const checkbox = document.querySelector(`input[name="_selected_action"][value="${id}"]`);
-            if (checkbox) checkbox.checked = true;
-        });
-
-        // Trigger the refetch_from_cloudflare action
-        const actionSelect = document.querySelector('select[name="action"]');
-        if (actionSelect) {
-            actionSelect.value = 'refetch_from_cloudflare';
-
-            // Submit the form silently
-            const form = actionSelect.closest('form');
-            if (form) {
-                const formData = new FormData(form);
-
-                fetch(form.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                .catch(error => {
-                    console.error('Error refreshing videos:', error);
-                });
-            }
-        }
+        // Check each processing video's status via the API
+        const checks = videoIds.map(id =>
+            fetch(`/admin/archive/video/${id}/processing-status/`)
+                .then(r => r.ok ? r.json() : null)
+                .catch(() => null)
+        );
+        const results = await Promise.all(checks);
+        const anyReady = results.some(r => r && r.status === 'ready');
+        if (anyReady) showReloadToast();
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        initialProcessingIds = getProcessingVideoIds();
-        if (initialProcessingIds.length > 0) {
-            console.log(`Found ${initialProcessingIds.length} processing video(s), starting auto-refresh (every 10s)...`);
-            refreshProcessingVideos();
-            pollingInterval = setInterval(refreshProcessingVideos, 10000);
+        const processingIds = getProcessingVideoIds();
+        if (processingIds.length > 0) {
+            pollingInterval = setInterval(pollProcessingVideos, 10000);
         }
     });
 })();
