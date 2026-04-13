@@ -85,9 +85,10 @@ pieces = pieces.sort((a: any, b: any) => a.title.localeCompare(b.title));
 	display: flex;
 	flex-direction: column;
 	background: var(--color-bg-card);
-	border-radius: var(--border-radius);
+	border-radius: var(--button-radius);
 	overflow: hidden;
 	box-shadow: var(--shadow-card);
+	border: 1px solid var(--color-light-gray);
 	text-decoration: none;
 	color: inherit;
 	transition: var(--transition);
@@ -95,19 +96,21 @@ pieces = pieces.sort((a: any, b: any) => a.title.localeCompare(b.title));
 }
 
 .work-card:hover {
-	transform: translateY(-5px);
+	transform: translateY(-3px);
 	box-shadow: var(--shadow-card-hover);
+	border-color: var(--color-primary);
 }
 
-/* Teal accent bar at top */
+/* Primary accent bar at top */
 .work-accent {
 	height: 4px;
-	background: linear-gradient(90deg, var(--color-secondary) 0%, var(--color-accent-lavender) 100%);
-	transition: height 0.22s ease;
+	background: var(--color-primary);
+	transition: height 0.18s ease;
 }
 
 .work-card:hover .work-accent {
-	height: 6px;
+	height: 5px;
+	background: var(--color-secondary);
 }
 
 .work-body {
@@ -116,15 +119,15 @@ pieces = pieces.sort((a: any, b: any) => a.title.localeCompare(b.title));
 }
 
 .work-title {
-	font-size: 1.2rem;
-	font-style: italic;
+	font-size: 1.05rem;
 	color: var(--color-dark);
 	margin: 0 0 0.5rem;
 	line-height: 1.3;
+	text-align: left;
 }
 
 .work-card:hover .work-title {
-	color: var(--color-accent-purple);
+	color: var(--color-secondary);
 }
 
 .work-choreographer {
@@ -152,7 +155,7 @@ pieces = pieces.sort((a: any, b: any) => a.title.localeCompare(b.title));
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.12em;
-	color: var(--color-secondary);
+	color: var(--color-primary);
 }
 
 .work-genre--empty {
@@ -169,7 +172,7 @@ pieces = pieces.sort((a: any, b: any) => a.title.localeCompare(b.title));
 
 .work-card:hover .work-arrow {
 	transform: translate(2px, -2px);
-	color: var(--color-accent-purple);
+	color: var(--color-secondary);
 	opacity: 1;
 }
 
